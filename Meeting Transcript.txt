@@ -1,0 +1,465 @@
+Impromptu Zoom Meeting - May 04
+VIEW RECORDING - 56 mins (No highlights): 
+
+---
+
+0:00 - Zain Ali
+  Hi, mate. How are you? Yeah, very well, mate.
+
+0:03 - Daniel Brown (webuildtrades.com)
+  How are you?
+
+0:05 - Zain Ali
+  Yeah, I'm good. I'm good. Thank you. Good, good, good, good.
+
+0:09 - Daniel Brown (webuildtrades.com)
+  So thanks for jumping on, mate. Obviously, we've got a lot going on at the moment on preparation for this webinar.  And as I said in my voice note to the other day, there's going to be some big changes that we're going to be making inside WeBuild Trades.  Just to try and take advantage of everything that's happening with AI. And we never want to be in a position where we're that big that we can't pivot quickly.  We always want to be obviously making sure that we're changing with the time. So I think we have made the decision that we're going to be basically pausing WeBuild Trades.  Like anyone who wants to join, they'll join a wait list while we make this massive transition. And obviously then after the when we come out the other side of that, WeBuild...  Trades will be much more simple. We'll have a cleaner offer. It's going to make the whole team a lot more effective because everyone who jumps on a sales call will already know the price.  And I'm going to be investing a lot of time into training all of the team in sales. So instead of just having jazz there, we've got the entire team whose daily KPIs is to contact a certain amount of businesses.  This is the direction that we need to be moving towards if AI is going to be doing a lot of the heavy lifting on the back end.  So obviously, it's important that you know that, mate. I shared the video of the AI avatar who's able to create these like Loom videos and whatnot.  And I also wanted to just get an update from you on like where we're at as a whole, all of the projects that we're working on.  So, yeah, do you want to jump in, mate, ask me any questions or just fill me in on where you're at and if you need my help with anything?
+
+1:56 - Zain Ali
+  Yeah, yeah, sure. So a few projects which... I'm currently working on, and most of them are, like, delivered. Some of them are working on and making continuous changes.  So most important one was Closeboard, which clients are already using, right? So Closeboard launched a Scorpion type of live chat widget, which we have started testing, delivered it to Daryl Keystone from Keystone property claims.  So we'll see how it goes for that client, have prepared it for Kendrick Renewables as well. So we'll see how that live chat widget goes for our clients, and then we will start using, adopting that.  Live chat was already available in GoHighLevel, but that was missing some of the messages. So during the conversation, if 10 messages are sent, a couple messages won't go.  So the GoHighLevel's live chat widget wasn't working, so we had to stop that a year ago. So now, because Closeboard has their own live chat widget, so we are trying that.  Second is the. Voice agent again, which we have definitely gone through different iterations. And with your feedback, we have improved it more and more.  So we would need your input on that. Maybe watch the demo, maybe have a couple calls with it. The last time you had a call with it, I improved it afterwards.  It was kind of, it was echoing and listening to its voice because the voice was coming back and voice agent stopped because it thought you were trying to say something.  And that's why you didn't have a good experience with it.
+
+3:30 - Daniel Brown (webuildtrades.com)
+  message. Yeah, yeah. I'll definitely do that again. So at the moment, you need for me to go through the demo.
+
+3:41 - Zain Ali
+  Yes. Have you, I did watch a demo video.
+
+3:45 - Daniel Brown (webuildtrades.com)
+  Have you got a new one?
+
+3:48 - Zain Ali
+  Yeah, let me just, can I share my screen?
+
+3:50 - Daniel Brown (webuildtrades.com)
+  Yeah, you should be able to share now, mate.
+  SCREEN SHARING: Zain started screen sharing - WATCH: https://fathom.video/calls/660416881?timestamp=234.718085
+
+3:54 - Zain Ali
+  Okay. So inside our Trello board, we have Voice AI. So inside. We say I have delivered the latest demo.  Let me just quickly check if you could have watched it. It has got two views. So it was with this landing page.
+  ACTION ITEM: Call Voice AI demo numbers; send feedback to Zain - WATCH: https://fathom.video/calls/660416881?timestamp=270.9999  Yeah, I did watch this because remember I've created the new landing page.
+
+4:38 - Daniel Brown (webuildtrades.com)
+  Yeah, landing page.
+
+4:39 - Zain Ali
+  Yeah, yeah, yeah. So it's the same. You just need to maybe call to this ABC landing number and webuildtrades number and have a couple calls with it.  Let me know your feedback. And I'm excited to have this launched ASAP, but we just need to need your more feedback and then finally to go to the demo.  I'm happy to jump on a call as well while you record the demo so that if there are any hiccups or any issues, I can go through and quickly resolve that.
+  ACTION ITEM: Publish Voice AI demo landing page; keep v1; replace Loom w/ Daniel's demo - WATCH: https://fathom.video/calls/660416881?timestamp=305.9999  So just on this voice AI one, mate, you just stopped sharing just for a second.
+  SCREEN SHARING: Daniel started screen sharing - WATCH: https://fathom.video/calls/660416881?timestamp=320.259665
+
+5:16 - Daniel Brown (webuildtrades.com)
+  What I'm going to need to do here is I'm going to need that landing page. I need this to be like the version.  So I need you to basically get access to this version and make this live on the URL.
+
+5:36 - Zain Ali
+  Yeah. Is it up to date on the GitHub you posted recently? But I'm not 100% sure.
+
+5:47 - Daniel Brown (webuildtrades.com)
+  Let me just make sure all the... Just give me two seconds, mate. Yeah.
+
+5:52 - Zain Ali
+  Can just check the changes of being committed and pushed to GitHub and just check?
+
+5:59 - Daniel Brown (webuildtrades.com)
+  Before doing... So that we, there's not any bugs. We're not committing anything that shouldn't be committed. That'll be really helpful.  Also, I don't want to make that change where we're doing the webuildtrades dominate offer for $12,000. So let's ignore that.  But any other changes on things that we've worked on with like the voice.ai demo, all of the things that you can see in this fall that haven't been committed, whether it was through claw code or codex, then let's get them committed.  So I've just sent that message into, um, clawed in anti-gravity. So that should do that now. And then because this is in my switcher, mate, you should be able to access it here.  Now, what I do want to have is I do want to have your previous version, because I think that's really a good use case of AI where I can show, look, this is what  You produced and then me using AI, was able to take that and turn it into this with just a couple of prompts.  So like yours would be like version one and this would be version two.
+
+7:10 - Zain Ali
+  So do you want to keep version one as well, maybe on some other domain?
+
+7:15 - Daniel Brown (webuildtrades.com)
+  Yeah, like on a, yeah, I mean, it could be on the same domain just as like a subfolder that says version.
+
+7:22 - Zain Ali
+  Yeah, exactly, mate.
+
+7:24 - Daniel Brown (webuildtrades.com)
+  Okay, so I'll do that.
+
+7:27 - Zain Ali
+  And then just make sure this one's fully functional.
+
+7:29 - Daniel Brown (webuildtrades.com)
+  So my demo, when I record it, will sit here.
+
+7:35 - Zain Ali
+  Okay, got it.
+
+7:36 - Daniel Brown (webuildtrades.com)
+  And then obviously we've got all of these.
+  ACTION ITEM: Review Voice AI demo landing page content - WATCH: https://fathom.video/calls/660416881?timestamp=458.9999
+
+7:41 - Zain Ali
+  Yeah, and yeah, we will replace the Loom video, your Loom video is there. Yeah. let's see.
+
+7:49 - Daniel Brown (webuildtrades.com)
+  But this is, and then just check it, mate. Just check you're happy with everything that's here. Yeah, I'll review it.
+
+7:58 - Zain Ali
+  Mostly the content, I think it got from. I'm there already, but I'll still read through it.
+
+8:03 - Daniel Brown (webuildtrades.com)
+  So I need to call the AI voice agents and complete demo.
+
+8:13 - Zain Ali
+  Yes. And do you need the landing page before you record the demo or is it fine after as well?
+
+8:20 - Daniel Brown (webuildtrades.com)
+  Well, I can use just, yeah, I can, I will need it for the demo because I'm going to showcase the landing page and basically walk through it in the demo.
+
+8:31 - Zain Ali
+  So, okay, I'll make it live as soon as possible then.
+
+8:35 - Daniel Brown (webuildtrades.com)
+  And then, mate, another thing. So just on this one, like you mentioned to me the power of claw design or codex or whatever to create these little branded videos, like little promotional videos.
+  ACTION ITEM: Build Remotion/Hyperframes demo for 30–60s marketing videos - WATCH: https://fathom.video/calls/660416881?timestamp=531.9999  And I did see a company that uses a tool called Remotion. I'm not sure if you're familiar with it.
+
+8:54 - Zain Ali
+  Yeah, it's similar to, Remotion is similar to Hyperframes, but it's more powerful.
+
+9:02 - Daniel Brown (webuildtrades.com)
+  Okay, so what I'd like to see from you as well, mate, if you can, is putting me a demo together on how I can start using that because obviously within this switcher tab that I've got here, we've got the command HQ, which is obviously insane.  And my file structure has so much context around everything that we've built that it would be really good to see what this can, like some upfront marketing videos, like 30 to 60 second marketing videos it can create.
+
+9:36 - Zain Ali
+  So I need to build that skill, basically. Sure, sure. Yeah, so I tried it a few times and my team also tried it, so it doesn't generate like a high class output in first iteration, but it does good, like it does pretty much pretty good job as a version one.  you. Like an ideation stage, which would take maybe weeks, but then we can definitely tweak it, do more iterations frame by frame, like change this, change that, and then it'll get there.  Because it's video and it needs to do frame by frame. So like iteration one is very good, but not something which could be live, could be made live.  So I just wanted to mention that.
+
+10:23 - Daniel Brown (webuildtrades.com)
+  Well, two things. So first of all, we've got Cameron and the video editing team who can work on them.  So that's fine. It'll be good to give them like a foundation to build from. But like literally, mate, it's only going to be like a month.  It could be a couple of weeks. It could be a month, could be three months before the AI or remotion is able to produce better work than what the video editors will.
+
+10:47 - Zain Ali
+  Yeah, yeah, yeah, yeah.
+
+10:49 - Daniel Brown (webuildtrades.com)
+  So yeah, we want to just get ahead of all of these things, knowing that it is only going to be a matter of time before like it is better than the video editors.
+
+10:59 - Zain Ali
+  Yeah, it is. It's already becoming, it's just that, how we prompt it, how we give it context and all that.
+
+11:09 - Daniel Brown (webuildtrades.com)
+  100%. So, okay, mate, so that's the voice AI. And obviously every project that we're working on, we would want one of these kind of branded videos for it.
+
+11:18 - Zain Ali
+  Yeah. think it will look really good for us.
+
+11:21 - Daniel Brown (webuildtrades.com)
+  So, yeah, if we move on, so we spoke about the close bar and you're testing that, which is good.  Spoke about the voice AI. What's next on your list, mate? Yeah.
+
+11:31 - Zain Ali
+  So, the next is the automation for SEO and social media team. So, I had delivered the dominant blog writer automation.  I sent you the demo. That demo is available on Trillo as well. So, if I can share my screen.
+  SCREEN SHARING: Zain started screen sharing - WATCH: https://fathom.video/calls/660416881?timestamp=711.207611
+
+11:47 - Daniel Brown (webuildtrades.com)
+  Yeah. Let me stop sharing. You can share now, mate. Okay.
+
+11:52 - Zain Ali
+  So, in our Trillo board, can you see it? Yeah. Yeah.
+
+11:56 - Daniel Brown (webuildtrades.com)
+  Yeah.
+
+11:56 - Zain Ali
+  So, we have this SEO AI project and in this one. One, I have delivered maybe two comments. So this was shared on WhatsApp.  I just moved it to Trillo as well. So this is the demo I have delivered to a social media team on Rocket where they can use this automation and generate the full month content with just by filling out a form.  And the Figma diagrams are also there. So maybe if you want to use it for some events, you can.  What's the content like, mate?
+
+12:28 - Daniel Brown (webuildtrades.com)
+  What's the quality like that's coming out of it?
+
+12:31 - Zain Ali
+  Yeah, it's let me just go to my mail and show you. this is graphics and? No, no, not graphics, just the content for them.
+
+12:43 - Daniel Brown (webuildtrades.com)
+  Okay, so mate, well, yeah, show me first and we'll work on what version two of this can look like.
+
+12:49 - Zain Ali
+  Yeah, so similar to the website content, we get another email, which is for social media. So let me just go back.  And. Um. Yeah. Yeah. Amen. Search here. Yeah, this one. Social media content is ready. So this is for Ashford.  And it generates posts, which are caption and tags and phone number call to action. And then it would fetch through the reviews from the client side, their reviews page.  And it would also make reviews post as well. So eight review posts. And then there are 12 caption posts.
+
+13:38 - Daniel Brown (webuildtrades.com)
+  Let's a look. Let's go through the caption ones. One by one makes. I'd like to give some feedback on them.  So this is post one.
+
+13:46 - Zain Ali
+  Okay.
+  ACTION ITEM: Update social writer: human-like captions, random length/emoji, no emoji-start; add image generation - WATCH: https://fathom.video/calls/660416881?timestamp=829.9999
+
+13:47 - Daniel Brown (webuildtrades.com)
+  Then go to post two, post three. Okay. Some feedback here, mate. First of all, and I've spoke about this to Cameron, but again, if this AI is being trained on Cameron's posts, then it looks like Cameron hasn't applied my feedback.  So first of all, way too many emojis. We have removed the emoji at all.
+
+14:18 - Zain Ali
+  So Cameron gave us the feedback that he doesn't need emojis. So we are improving the automation to not include emojis.  Is that what you wanted?
+
+14:32 - Daniel Brown (webuildtrades.com)
+  Yeah. So we, we, we, we can use like, this is the thing that I want to, this is why I think the AI needs to like, it's going to be hard to prompt this in because we, we, we don't want every post looking identical.  Whereas at the moment, every post pretty much looks identical and it just looks like it's all been like massively templated.  So we want to have it where like some posts are long, some posts are short. Some posts have emojis.  Some posts don't have emojis. Make it random.
+
+15:07 - Zain Ali
+  Yeah, make it random.
+
+15:08 - Daniel Brown (webuildtrades.com)
+  We don't want to overuse emojis. And the one thing that's really important here is we never want to start a sentence with an emoji unless we're using an emoji as a bullet point.
+
+15:22 - Zain Ali
+  Okay. So see in this sentence here where like, imagine never dreaming, imagine never dreading some blah, blah, blah. See, the second sentence starts with the home and then it goes into the sentence.
+
+15:33 - Daniel Brown (webuildtrades.com)
+  Like that is just so obvious that it's AI generated.
+
+15:37 - Zain Ali
+  Got it.
+
+15:38 - Daniel Brown (webuildtrades.com)
+  Whereas at the button where it says find out more about our website, it's okay to have an emoji at the start of like a bullet point sentence, but not at the start of like a sentence sentence.
+
+15:49 - Zain Ali
+  Yeah, got it. That's really important.
+
+15:55 - Daniel Brown (webuildtrades.com)
+  Yeah. And then I think that will just look a lot better because the goal really is, mate, is to make...  Make it look like these posts have been created by a human.
+
+16:04 - Zain Ali
+  Got it.
+
+16:08 - Daniel Brown (webuildtrades.com)
+  Now, just some more points here. So, mate, if you just stop sharing just for a second again.
+
+16:15 - Zain Ali
+  Yes.
+
+16:17 - Daniel Brown (webuildtrades.com)
+  So this now, obviously, I wouldn't have been able to have this conversation with you what I'm about to have like a week ago or two weeks ago.  But now I can because the image quality that the ChatGPT is creating is absolutely insane. So, let me just show you this.  So if I just share my screen. So, I've gave feedback on the current version one. Now, how we move to version two is actually having images as part of the posts.  So if I come here and share again, basically, mate, like I saw that this one ad here that we ran was working like really well.
+  SCREEN SHARING: Daniel started screen sharing - WATCH: https://fathom.video/calls/660416881?timestamp=1024.787845  Actually, where is it? One of the ads anyway that I created using AI was working well. And then I was on social media the other day and I saw this version and I thought this looks really good.  Like it's really simple. It'd be good to run this as an ad. And because this chat had context, it created these versions, which I just thought were incredible.  Like it's like really good what it created. So then I started like talking to it a bit more and basically started sharing different ads like I like.  So this is that trade more where we spoke about before. And then I shared these ones and look at what it's created, mate.  These are like and it created all of these at the same time. So it created like 10 images all at the same time.  So the output was incredible.
+
+18:05 - Zain Ali
+  And so I got it to create three versions of each one.
+
+18:10 - Daniel Brown (webuildtrades.com)
+  Like, look at that, mate. Absolutely insane that it was able to create this. And then just more simple ones.  So we're in a position now where, yes, we've got the AI generating the captions, but we also need AI generating the images.
+
+18:27 - Zain Ali
+  Got it.
+
+18:28 - Daniel Brown (webuildtrades.com)
+  However, there's, like, another key part to this. And, again, you'll have to work your magic with this, mate. But we need the clients to organize themselves in a way where, like, all of their images that they're happy for us to use are inside a folder.  I know they've got certain folders at the moment. But then them images, the authentic images, can actually feed into AI as well.  And then we use variations. So, like, some images are of just... Like literally the image that they've gave us, but some of them can be like this.  Got it. Because this is the next step now, mate. Like if we can get the AI to take care of the entire social media side of things, including the image generation, can you imagine like what that's going to look like?
+
+19:22 - Zain Ali
+  Yeah. Got it, got it. So because like images too from OpenAI was launched recently, like maybe a couple of weeks or maybe a month ago.
+  ACTION ITEM: Update blog writer: add images/thumbnails; auto-generate social posts - WATCH: https://fathom.video/calls/660416881?timestamp=1176.9999  So, yeah, it's, it's improving. So we'll include this part of the module into our affirmation. So it not only generates content, but also generates the images.  Brilliant, mate.
+
+19:47 - Daniel Brown (webuildtrades.com)
+  And then also add a note on this for the blog posts as well, because now in the blog posts that we get, I mean, even in the website generation thing, to be honest, but like just basically.  Mate, look at what I'm saying now. It's like version one of AI with what we're using was all about text.
+
+20:06 - Zain Ali
+  So we've got website text, we've got blog text, we've got emails, and we've got social media.
+
+20:11 - Daniel Brown (webuildtrades.com)
+  But the level up from that now, which is where AI's capabilities came in, is image. So on all of these projects that we've worked on previously, we need to add image into it now.  And that's going to be just an insane use case.
+
+20:26 - Zain Ali
+  Got it. So we can include images in social media. Writer, in blog, Writer, into website that I would want to recommend because that is the design team designs it, including the images and all that, and then gets delivered to that.  And then that it goes from there. so the blog post and the social media is definitely number one priority.  Yeah.
+
+20:46 - Daniel Brown (webuildtrades.com)
+  Yeah, focus on those, mate, and we can leave the websites just so we're not doing too much.
+
+20:52 - Zain Ali
+  So it will have blogs, thumbnails, and any images to use inside the blog as well.
+
+20:56 - Daniel Brown (webuildtrades.com)
+  Correct. Yeah. And then obviously, like, if we... If we promote that blog on social media, it can have that post as well.  Because again, mate, what we're looking at here now as well is we want to use what we're doing for our Dominate clients for WeBuild Trades as well and for the Trade Business School.  So a bit of a side project for you here will be basically setting up this content engine for both WeBuild Trades and the Trade Business School.  But here, me, you, Jazz, and Mirza, who's our video editor, might need to talk because what me and Jazz have committed to now is once a month having a complete content day where we're recording videos, we're recording ads.  So what we might need to think about is, okay, on Monday, Wednesday, and Friday are WeBuild Trades content days.  And we think of, like, structure where it's, like, two reels a week and one carousel, and then one day where...  We promote the blog, the weekly blog. And then for trade business school, it's Tuesdays, Thursdays, and Saturdays. So then across both brands, we're basically posting every single day.  And then, I mean, what we could, so mate, think about this. And again, you can use AI to challenge this thought process, but this is just me thinking out loud.  But because we're going to have the two brands now and we want to be really consistent across social media, we can have, we build trades is Monday, Wednesday, and Friday.
+
+22:34 - Zain Ali
+  Trade business school is Tuesday, Thursday, and Saturday.
+
+22:39 - Daniel Brown (webuildtrades.com)
+  And then we have like a weekly newsletter that goes out on a Sunday. I don't know whether to do one from each business.  Maybe. It would make sense to have one for each business because they're two separate entities. So maybe we have like on a Sunday, we have like the blog post going out, but we brand it as like a newsletter where we're doing like an update basically and adding that content to the website.  So if you think about what that structure needs to look like, mate, knowing that me and Jazz can create videos, we can do the scripting and everything.  Yeah. Just think about in court how that would look. Does that make sense, mate? Like am I confusing you all?  Yeah.
+
+23:35 - Zain Ali
+  So sometimes these creators create videos and then that video is then promoted in 10 different angles into 10 different platforms.  They can write an article on top of that video, which then gets posted to the website and then that article is then distributed on the social media.  Then maybe you can create some shorts out of that video. So there can be different versions of the content and different angles we can create out of that video.  So we can definitely create something where we have a good piece of content from you, and then we can see like what is it that we can generate more on top of it, like just spin the wheel and then get most out of that video and then just use that or to increase the SEO and authenticity and all that.  Or even that, again, once you have those content videos and all that, that gets added to the newsletter as well.  So yeah, I haven't yet seen the content or the items which you are recording. I have seen some of the ads which Google Trades posts on, but those are very short, right?  So for the articles and what might make sense?
+
+24:52 - Daniel Brown (webuildtrades.com)
+  Yeah, sorry to cut in, but like I get where you're coming from and I think what would probably be good here is if we created like...  We've obviously... obviously got the WeBuildTrades YouTube channel already. So it might be worth me doing a weekly YouTube video for WeBuildTrades that we promote across WeBuildTrades and Trade Business School.  So on a Sunday, we take this one video of content, we use AI to turn it into a blog post, and we promote that same thing on the WeBuildTrades social media and the Trade Business School social media.
+
+25:30 - Zain Ali
+  And what that content would actually be? Would it be like coaching staff or providing best tips or maybe just choosing a topic which is pain points to the businesses and then speaking about it?  Or is it something which you would want to maybe promote the business as aggressively? You know what I'm thinking, mate?
+
+25:49 - Daniel Brown (webuildtrades.com)
+  I'm thinking more of like a weekly update video where it's like, because that's going to be more relevant. Do you know  I mean, and then in that weekly update video, can share stories, I can share testimonials, like people, like I'll share what's happening in AI.  So like this is where it will be really good for like on a weekly basis for everyone in the teams to send me an update on what they're working on.  And then I turn that into content. So like I can say, look, and so in this week's video, I'm going to be showing you X, Y.  So it's just a very simple format every week. So I'm not having to overthink it. So welcome to the WeBuild Trades Weekly Digest.
+  ACTION ITEM: Upload recording to AI portal; send to Naren; draft content strategy; schedule weekly meeting - WATCH: https://fathom.video/calls/660416881?timestamp=1592.9999  In this video, I'm going to be showing you the, you know what I mean? So it's like a consistent format every week.  I think that will be really good. So, mate, what I'll do after this is I'll take this section of the recording, I'll upload this into my AI portal, and like I'll come together with what like the content strategy needs to be.  And then every week I can just get a script that's generated based on all of the updates I've gave.
+  ACTION ITEM: Build CRO agent to crawl Reddit/FB/YouTube; use dedicated FB account - WATCH: https://fathom.video/calls/660416881?timestamp=1614.9999  Upload it into my teleprompter, and then I'm here every week just doing a video.
+
+27:05 - Zain Ali
+  Yeah, and one suggestion into this is that we need to also crawl some of the pain points businesses are facing maybe this week or this month online.  Those could be from Reddit or Facebook groups. But in order for it to crawl, it would need to launch the Chrome MCP dev tool, and then you would need to log in your Facebook account.  But have it safely or maybe create a new account so it doesn't get blocked because we are doing crawling.  So with that, it would search through the groups and see what people are talking about. And then you choose the groups, like what are the groups which you think are more relevant for this or Reddit or maybe use some YouTube channels or maybe.  So those could maybe also contribute to the preparation of the content in addition to the media. out, mate.
+
+27:56 - Daniel Brown (webuildtrades.com)
+  So let's now take what we're talking about here. Okay. Okay. This is a really interesting idea. And let's now try and incorporate it into what we've already built.  So if I just share my screen here now. Yes.
+  SCREEN SHARING: Daniel started screen sharing - WATCH: https://fathom.video/calls/660416881?timestamp=1689.722803
+
+28:10 - Zain Ali
+  Obviously, we've got the Trade Business School Command HQ, but we've also got the WeBuild Trades Command HQ.
+
+28:16 - Daniel Brown (webuildtrades.com)
+  So the WeBuild Trades Command HQ is something that I'm going to be personally using. And down here, we've got the different C-level officers.  We've got the COO, the CMO, the CFO, and CRO. So what you've just said there would basically be the CRO.
+
+28:34 - Zain Ali
+  Yeah. So we've got this... Sorry, carry on.
+
+28:38 - Daniel Brown (webuildtrades.com)
+  So where does it get the input data from? So we can get the input data from wherever we want.  Me and you and Naren can work together on training this CRO to pull information from wherever we want to go.  And then all the time, this is training the AI brain. And all this would be a matter of then, mate.  Is us adding a section into, so here I've got this content pipeline one. This isn't actually in, this is just a test that I did, but this isn't actually in the client's command HQ because they don't need the content pipeline.
+  ACTION ITEM: Add weekly update prompts to Command HQ for Zain, Naren, Dom, Jazz - WATCH: https://fathom.video/calls/660416881?timestamp=1749.9999  So we can basically adjust and tailor the webuildtrades one to whatever we need. So for example, on this content pipeline one, we could have a thing in here where every week, a message is sent out to you, Naren, and say Dom and Jazz to give an update.  So you're giving me an update on AI. Naren's giving me an update on the command HQ and the websites.  Dom's giving me an update on operationally across the business. And Jazz is giving me an update on sales and what's happening across the board, like exciting things that are happening.  So that's number one. Now, number two is, what Naren's building at the moment is, have you saw his daily briefing, mate?  What's pulling together, what's happening inside Rocket, what's happening inside Mattermost, and what's happening inside Trello? Has he showed you that?  I missed that core team call.
+
+30:16 - Zain Ali
+  So I haven't yet seen that, but saw that in a Zoom screen here in our previous meeting. I haven't got logins for that.
+
+30:25 - Daniel Brown (webuildtrades.com)
+  So what is exciting, mate, about what he's building here is it's basically like an update on everything that's happening inside the business.  So like my goal, Zain, just so you understand this, is everything that we're working on and talking about, I want to live inside the WeBuild Trades Command HQ.
+
+30:44 - Zain Ali
+  Command HQ, yeah. Everything.
+
+30:46 - Daniel Brown (webuildtrades.com)
+  So then we've got those two sources now. We've got all of the content that's happening inside the business across clients that gives me a daily briefing.  We can pull information from the team members that we've just said, and this CRO... Co-agent down here can pull information from wherever we want to pull information.  And then we basically train a script writing agent that's trained on all of my past videos and how I speak and the language that I use.  And we give it a prompt where every Thursday, whatever, it pulls information from those sources and basically scripts what my weekly video should be or give me ideas around it.  And then I've got that transcript. I copy that transcript over into my teleprompter. We make the video really raw and simple.  So I'm not sending it over to the video editing team and they're taking three hours to three weeks to edit the video.
+  ACTION ITEM: Implement Command HQ content pipeline: Ideas→Scripting→Filming→Assets→Review→Schedule→Published; integrate LeadHub - WATCH: https://fathom.video/calls/660416881?timestamp=1903.9999  It can be a very quick edit. And then we can actually build AI agents where like the ideas go into here and like I can actually manually add ideas.  Once I'm ready, I can move it over to scripting and by dragging it over, it triggers. The AI content writer to write it.  And then once it's all done and scripted, I move it over to filming.
+
+32:07 - Zain Ali
+  Once it's filmed, move it over to scheduled.
+
+32:10 - Daniel Brown (webuildtrades.com)
+  And again, we could have AI agents here, mate, actually do this part for us.
+
+32:15 - Zain Ali
+  Yeah. Post it to YouTube.
+
+32:17 - Daniel Brown (webuildtrades.com)
+  And then once it's posted on YouTube, it gets moved to published. And this is where the transcripts extracted. Or once it's gone from scripting to filming, again, you can think about this, mate.  But this is where it creates the blog post, the social media post. It creates the graphics from what that transcript needs to be.  And then once it's done, so it'd be like ideas, scripting, filming. Once it's filming, it would go over to asset creation or assets, for example.  So it creates all the assets and adds them into this one workspace. So everything's all in here. And then from there, it needs to be moved over to schedule.  Where it schedules it on for Sunday at 10am, it pushes it out to YouTube, then 10 minutes later it goes on to Facebook and Instagram and LinkedIn.  And then once it's posted to all of those places, it goes to publish. So we've got an entire content strategy there, mate, that is built inside this content pipeline of Hit This.  Now we're kind of talking this out, Zain, what are your thoughts on this? Is this possible? Is this something that you feel could work well?
+
+33:34 - Zain Ali
+  Yeah, so that could work as a like generation, but then we definitely need review, human review and feedback as well.  So before it gets published, now someone reviews it, make sure that everything's good or provide feedback for regeneration of that thing, which it generated wrong.  And for scheduling, YouTube or any social platform could be integrated. Inside GoHighLevel or LeedsHub Social Planner. So we would just integrate with LeedsHub and LeedsHub then would post automatically to socials.  So rather than integrating with different social channels, we just integrate with one, which is LeedsHub.
+
+34:18 - Daniel Brown (webuildtrades.com)
+  Mate, I really like that idea. So it'd be like filming, asset creation, review, scheduled, published. Yeah.
+
+34:29 - Zain Ali
+  Mate, this is brilliant, man.
+
+34:31 - Daniel Brown (webuildtrades.com)
+  So this is another thing. So we've obviously this new WeBuildTrades strategy that we're thinking about where we're going to basically start bringing on clients for a month.  This will help us set this up as well. And then, mate, if you imagine, the WeBuildTradesCommandHQ here is essentially what we'll be selling to other agency owners.
+
+34:52 - Zain Ali
+  Yeah, yeah. That's agency disrupt.
+
+34:56 - Daniel Brown (webuildtrades.com)
+  Yep. So what would you need to... Start work on this, mate. What I'll do is I'll send this over to Naren as well, this section of the recording, because I think this will be really helpful for him to see.
+
+35:08 - Zain Ali
+  But what else would you need in this section? Yeah, so for me to generate the automation, which would automate the article writing and graphics.  So some of the things I'm already doing, but it's for the clients. But for webuildrades, I'll need to see, like, what are you seeing, what's the sort of content we can generate from it and then publish it, either it's article or social posts or what is it.
+
+35:42 - Daniel Brown (webuildtrades.com)
+  So, yeah, what I'm thinking here, mate, it would be like, and have a think about what this would look like.
+
+35:48 - Zain Ali
+  So I wonder here, look, we might have one pipeline, which is for the social media.
+
+35:52 - Daniel Brown (webuildtrades.com)
+  Sorry, you cut out there, mate. Would you, did you say something?
+
+35:54 - Zain Ali
+  Yeah, I was saying, yeah, I was saying since it, it, it is inside command HQ. So it's like mostly the development would be handled by the web team from Naren's side because it's all the software which he has built, right?  However, the inside which I can help with, can definitely help on that.
+
+36:17 - Daniel Brown (webuildtrades.com)
+  Okay. So, mate, have a think about it because we might want to have like a social media planner.
+
+36:23 - Zain Ali
+  Yeah. Which is like where we've got all the posts and the videos and everything that we've spoke about.
+
+36:28 - Daniel Brown (webuildtrades.com)
+  And then we might have another one, which is like content pipeline, which is like, we've got this script writer that creates the short and the long form videos, scripts.  And then we've got this type of thing. So the best thing to do here would be to create a version one and then move on from there.  So we'll park this for now, mate. Obviously, you think about it from your side. I'll send Naren over this recording and Naren can get back to us.  So I'm not. What he would need from his side to get this in action. Because I think this would be really valuable and it would also help us grow our YouTube channel, which is exciting.  So next one from you, mate. What else have we got on the agenda?
+
+37:20 - Zain Ali
+  Yeah, let me share my screen. And just remember, Naren will be watching this recording.
+  SCREEN SHARING: Zain started screen sharing - WATCH: https://fathom.video/calls/660416881?timestamp=2246.797788
+
+37:25 - Daniel Brown (webuildtrades.com)
+  So if there's anything else that you want to show him, then that's good. Yeah.
+
+37:30 - Zain Ali
+  So here, the other one was blog writer for Dominant Client. I had a very good meeting with Naren a couple weeks ago, with Kul, a couple weeks ago.  And he gave some feedback on reducing the number of fields in the form. So here's the output of the blog writer.
+
+38:00 - Daniel Brown (webuildtrades.com)
+  Okay, let me just bring this across, mate.
+
+38:03 - Zain Ali
+  Okay, nice. Yeah, so similar to the social writer, it would basically email when the blog content is ready for dominant clients.  And this is blog one, it generates keyword, meta title, and this is all according to the template, which Kool wanted.  So we looked at the generation template of what they are already doing and generated this automation. And then this, like it generates four or five or more articles as well, depending upon what they inputted into the form.  And then it would generate the blog articles for that. And then it would also QA it. So I have this good diagram over here, which is this one.  Let's pick my diagram. So this one for SEO, for Kool. So here we have that Figma diagram which shows how all of this works.  So this is the older version of the diagram. Let me just zoom in a little bit or maybe just go back to files.
+
+39:35 - Daniel Brown (webuildtrades.com)
+  Okay, this is the one.
+
+39:47 - Zain Ali
+  Okay, so we have updated the blog writer agent where it would research on the client side and research the metadata and then it would write the blog article and then this is the QC agent.  Which would quality check the prompt, which is generated. So Kool had a prompt written, which he would use to QC, quality check all the blogs which are produced.  And then it would score them. So we have that QC automated as well into our automation. So whatever blog is written, it would QC it and it would score it.  If it's less than seven, then it would give the feedback on what things to improve. And then it would regenerate the blog again.  then once it's more than seven, then it would store the blog, it would format it, and then save it to Google Docs and send email like this.  And this is the output.
+
+40:40 - Daniel Brown (webuildtrades.com)
+  Yeah.
+
+40:42 - Zain Ali
+  So we haven't yet delivered the version two to QC, so we are planning to deliver it in this week.  We have enhanced it. Version one, we had meeting with QC on that. So that is the SEO AI, which we have delivered.  Uh. Vision 1 and Vision 2 is in plan. On Command HQ, customer hub app is live on Google Store and Apple Store.  So at the moment, the version we had before with our new toolbox is switched over to Command HQ. And some of the more enhanced features which Naren was showing in the meeting, such as invoices and bookings, those APIs, they are testing, Naren's stream is testing.  So once we get those APIs, we will add those enhancements to the app. But at the moment, the app which we had built originally switched over to Command HQ backend.  We are now building Employee Hub app. So once that is done, we will push that as well to Google Store and Apple Store.  So those would also be ready to... you may, this is really good.
+
+41:56 - Daniel Brown (webuildtrades.com)
+  Yeah.
+
+41:57 - Zain Ali
+  And other than that... may, is is this really finally, last project is Sales AI. So in Sales AI, we have multiple projects.  One is the discovery call preparation project. So this one is basically to prepare a report, which Jazz can review before every discovery call.  But because discovery call is more about knowing the business and what their challenges are, Jazz recommended that this won't bring any value.
+  ACTION ITEM: Pause Discovery Call Prep; prioritize Proposal Generator and Call Analyzer - WATCH: https://fathom.video/calls/660416881?timestamp=2536.9999  So I think we would need to pause this one, maybe, and not work on this one. Whereas the second project is proposal generator, we'll move towards the proposal generator then and call analyzer, which would analyze the call and then give feedback on the things to improve as we discussed.
+
+42:43 - Daniel Brown (webuildtrades.com)
+  That's call analyzer one, mate, is going to be key because essentially we want AI to be the sales manager.
+  ACTION ITEM: Build Call Analyzer v1: post-call analysis by type/department/team; explore Fathom/Fireflies live suggestions - WATCH: https://fathom.video/calls/660416881?timestamp=2567.9999  And this will be just incredible for us.
+
+42:55 - Zain Ali
+  Exactly. And with this call analyzer... Can I ask a few questions on this? Do we need Call Analyzer to analyze calls on all the departments and also keep a directory or maybe a folder where anybody can log into the portal and basically click on the client and see the departments.  And each department has a set of calls and click on the department and then click on the team member.  I think that would be beautiful.
+
+43:27 - Daniel Brown (webuildtrades.com)
+  If we could have that, then yeah, because then it's organized. So every type of call, it's organized by type of call, whether it's a discovery call, whether it's an ads intro call, whether it's a launch call, whether it's a follow-up call from Jazz to a client, or even whether it's a team call.
+
+43:48 - Zain Ali
+  Yeah.
+
+43:50 - Daniel Brown (webuildtrades.com)
+  And then, yeah, if the AI can analyze all of that, like just think about the amount of data that we get, but also it acts as a very powerful training tool where...  If we're going to be getting Ben and Ruben and Cole, who've never had no sales experience, hoping to do the sales calls, we want them to have active feedback that's coming in from all the calls that they're doing.  So I listened to one of Cole's calls the other day, which was all around his first stage interview. And on the interviews, he was saying the word mate way too often.  And like I've banned Jazz, Dumb, and Cole from saying the word mate to anyone they're meeting for the first time because it's too friendly.  Like you don't go to the doctors and the doctor sits you down in the chair and says, how are you doing, mate?  Nice to meet you, mate. Like it completely takes away our authority and credibility and takes us out of the alpha position, which is where we need to be as the expert.  So things like that was massive. The amount of times we say, um, or essentially was massive. Talking too much was massive where we.  We should be on a sales call asking a question and shutting up and getting the answer and then trying to dig deeper into what their pain is.  So then at the end of it, we can ask question, ask question, ask question, ask question, to then see if we can be the company that can prescribe the solution.  So I've learned a lot in sales through my career. And obviously, if we can train those lessons into the AI, which is probably already way better than me at sales, and then give that sales manager to every single person in the business to help them improve on every call that they're doing, insane value.
+
+45:41 - Zain Ali
+  Yeah, and on that one, some of the companies, bigger companies, I know, I'm not like, I cannot show proof, but they have some sort of tools, which are giving them live suggestions during the meeting.  Because they have... So much data about a client, and they would just hit on the client, like they would have live feed, whatever client is speaking, and any questions to interrupt to the client, they would just ask the question because they see everything on the screen.
+
+46:15 - Daniel Brown (webuildtrades.com)
+  Interesting. Mate, anything like this, 100%, anything that's going to help us improve is always going to be relevant for us to at least explore.  So yeah, I'd be happy to try all that for sure.
+
+46:31 - Zain Ali
+  Okay, so I'll also see like, like the version one is to have the call analyzer, which analyzes the call after it has happened.  And then maybe in version two, we can see what are the tools we can integrate for the live feed or maybe build our own tool for which joins the meeting just like Fathom.  And then it would suggest what the, what the speaker needs to ask from the participant in a real time.  We'll see if Fathom has that. So they might have this already in their premium package, but we'll check on that as well.
+
+47:05 - Daniel Brown (webuildtrades.com)
+  Well, I saw that Fireflies, which is the alternative to Fathom. I did see that that integrates with a lot of tools.  So I'm not sure if Fathom does or whatever, but if we do need to change, that's fine. But again, just so you understand the goal here, Zain, because I think you do, but just to make it crystal clear, we want to really just make sure that WeBuildTrades is the most AI-enhanced agency that exists in every department, sales, SEO, all of these different areas, because that's going to be the blueprint for agency disrupt.  And that's really where a lot of the money can be really made, because it's targeting a completely different demographic to what we've done before.  And for this webinar, we've got all of the marketing material. If we can generate a lot of money from this webinar, I could literally record an ad that says,  On our last webinar, we did X. If you want to see what that webinar looked, do you know what mean?  Like we can really sell this in whatever way possible. So yeah, very exciting, mate. Was there anything else that you wanted to go through on this one?
+
+48:13 - Zain Ali
+  No, I think I have covered all the projects. That's all. Okay.
+
+48:18 - Daniel Brown (webuildtrades.com)
+  Well, what I'll do, I'll send this over to Naren. We'll get an update from him. I am very excited on this content writer one that we spoke about.
+  ACTION ITEM: Watch SEO writer demo - WATCH: https://fathom.video/calls/660416881?timestamp=2902.9999  All of the other ones, mate, just keep doing what you're doing. Keep cracking on with them. I'll do the voice AI demo.  I'll watch the SEO writer demo that you've mentioned as well. And then, yeah, once Naren's watched this video, we'll get him on a call as well.  And we will carry on that weekly meeting with him. What I need to do, mate, is actually create like a weekly meeting where we're all added.  So it's just in the diary because I don't think I added that last time. So leave that with me.  I'll pass this to Naren and then we'll get a weekly meeting on the go. All right, Zane. Yeah, sure.
+
+49:01 - Zain Ali
+  And I think I missed something. So you shared a YouTube video with me where you shared some ideas like send personalized, maybe a video of you with an avatar and a landing page.  So can you tell me more about that? Like, what are you envisioning on that? Because I saw some tutorials online.  So Ben AI recorded something which would automate the hiring process. So they would send customized Loom videos. It looked like a Loom video, but it isn't.  It's a combination of avatar and screen share, which would send to each participant or each applicant to a job.  Just a personalized. So maybe if you can tell me more about that.
+
+49:42 - Daniel Brown (webuildtrades.com)
+  Yeah, 100%, mate. So basically, as I mentioned earlier, I want Ben, Ruben, Cole, Dom, all to be sales people.  So every role within WeBuildTrades in the UK. Pay office needs to have an element of sales because as we're discovering at the moment, AI is going to replace the need for all of the other roles.  So AI is going to be a better Facebook ads optimizer, a better Google ads optimizer, et cetera. So for us to hire talent, especially in the UK, like they need to be able to bring in new business.  Uh, and if we can systemize that sales process to it's like, look, when you join webuildtrades, you get taught the 10 step sales process that if you just follow that process, you will make money.  So the way I'm thinking about doing that is the first thing is how do we reach out to people?  Well, that initial call, we need to have a very powerful offer that doesn't really exist out there at the moment.  And the way I was thinking about that is we've got say 16,000 people on our list at the moment, thousands of people that we haven't contacted.  So imagine Ben, who's got. We've no sales experience. We need a good script that he can use and learn.  So that script is something along the lines of, hi, there's this John from ABC Plumbing. Hi, John, this is Ben from We Build Trades.  You may not remember, but in January, because we'll have the date when they opted in, in January, you checked out some of our content online.  And I just wanted to let you know that we've got something exciting that I'd love to share with you if you've got 60 seconds.  So again, we'll refine this, but that would be like the opening, 60 seconds. So then they'll say yes or no.  A lot of them will say yes. Okay, brilliant, John. So we're coming up with a new offer where basically we want to show you how we can help your business and not just tell you how we can help, like all these other companies are doing.  So for the first time ever, we're offering a personalized service where we'll record. a specific video on what we would do if we were your marketing team.  This isn't something that's going to be generic across every business that we speak to. This is going to be a specific video directly for you where there's absolutely no obligation for you to work with us.  So best case, you get some really good strategies from us and you might even want to hire us. Worst case, you don't, or you like what you see, but you don't want to work with us and you pass this over to your marketing team.  Would you like us to send you that video? Yes. If they say yes, imagine mate, like this would be a good offer if we had AI doing like creating an audit, we put in their website and it created like a landing page that was bespoke to them.  Like all of that can be done in minutes, but imagine how more powerful it would be if we could create that loom video that didn't actually require us to create the loom video.  Yeah. That means that, which shows what. So I was going to say, that would enable us to really just scale to a different level.  Now, in terms of what goes into that video, that would just be like a script as well. So you'd just be like, hi, John, thank you for requesting this free personalized video.  And then basically, mate, we just spend as much time as possible, me, you, Naren, and the team, and creating this personalized website that looks like we've, the goal will be to look like we've spent two hours analyzing this business, but we actually haven't spent no time doing it.  And then each team member will have a goal where every day they've got to get out 10 of these videos.
+
+53:47 - Zain Ali
+  That's their sales target.
+
+53:49 - Daniel Brown (webuildtrades.com)
+  And every day we're tracking it. So a minimum of 10, if they do 20 or more, they get a bonus, for example.
+
+53:56 - Zain Ali
+  Yeah. And in the video, in the video, ... ... ... Definitely, it would be your avatar, right? Your avatar in a Loom fashion.  So it's sharing the screen. What is it sharing, actually? The Beespoke website, which it has generated like a template website?  Or so maybe can you tell me more about the script? Because that is like the core part of it.  Because once they have said yes, everything could be automated, which you have said. But the video part is the core thing.  So what goes into the video, actually? Because that's the main part. If that's built, then everything else can already be automated.
+
+54:36 - Daniel Brown (webuildtrades.com)
+  Yeah, let me try and show you this, mate. So the product that I used to offer right at the beginning of WeBuild Trades was something called a Power Hour, where I'd record like a 40-minute video basically explaining how we'd help the business owner.  So what I'll do, mate, for this, don't worry too much about this right now. Because when Loren watches this...  pick, please. Start He'll be able to pull up the websites that we used to create. So I used to do this, and it was a very manual process.  And obviously, the videos were very long, but we used to create like a custom website. was like audit.webuildassets.co.uk with the company name.  And I'd do like keyword research. I'd look at the website. But this could be obviously way more tailored where it's like, so, John, we can see that you run an electrical business.  So we want to share an example of Jesse, who we've worked with at All Solar Work. So although we're giving it to John specifically, all we're doing is sharing the success story of Jesse and what Jesse's setup looks like.
+  ACTION ITEM: Prepare personalized video examples for Naren; share on joint call - WATCH: https://fathom.video/calls/660416881?timestamp=3342.9999  So park this for now, mate, because again, once Naren watches this, when we have our joint call together, we can discuss it in more detail.  And I'll actually try and pull up some of the videos that I used to create so you can actually see what those videos look like.  like. This was seven or eight years ago, so we just have to obviously bring it up to date, but they work well and they are what got me our first clients.
+
+56:09 - Zain Ali
+  Okay, got it. Yeah, sure. So I'll then wait for it. Cool.
+
+56:13 - Daniel Brown (webuildtrades.com)
+  All right then, mate. Well, enjoy the rest of your day, Zain. Thanks for jumping on, mate, and I'll catch up with you soon.
+
+56:18 - Zain Ali
+  All right. All right. Thank you so much. Have a good day. Bye. Thanks, mate. Bye-bye. Bye-bye.
