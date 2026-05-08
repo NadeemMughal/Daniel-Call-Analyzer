@@ -1,0 +1,113 @@
+# ─── Secrets & environment ─────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+service-account*.json
+*-credentials.json
+
+# ─── Node / npm ────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm/
+.yarn/
+package-lock.json.bak
+
+# ─── Build outputs ─────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.turbo/
+.vite/
+*.tsbuildinfo
+
+# ─── Frontend (React + Vite) ───────────────────────────────
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+
+# ─── Backend (Node + Express) ──────────────────────────────
+backend/dist/
+backend/build/
+backend/coverage/
+backend/logs/
+backend/*.log
+
+# ─── Supabase ──────────────────────────────────────────────
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+supabase/.env.local
+
+# ─── n8n ───────────────────────────────────────────────────
+# Local n8n data dir holds DB + decrypted credentials — never commit.
+n8n/.n8n/
+n8n/data/
+n8n/database.sqlite
+n8n_data/
+.n8n/
+
+# Workflow JSONs ARE committed (n8n/workflows/) — do NOT ignore them.
+# But ignore any local backups/exports a user might dump nearby.
+n8n/workflows/*.bak
+n8n/workflows/*-local.json
+
+# ─── Logs ──────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ─── Testing / coverage ────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+
+# ─── IDE / editor ──────────────────────────────────────────
+.vscode/
+!.vscode/settings.example.json
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# ─── OS noise ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# ─── Temp / scratch ────────────────────────────────────────
+tmp/
+temp/
+.cache/
+*.tmp
+*.bak
+scratch/
+
+# ─── Audio / large artifacts (recordings stay in Supabase Storage) ──
+*.mp3
+*.mp4
+*.wav
+*.m4a
+*.webm
+recordings/
+audio/
+
+# ─── Misc ──────────────────────────────────────────────────
+.history/
+.parcel-cache/
