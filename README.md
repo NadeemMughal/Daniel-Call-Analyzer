@@ -61,7 +61,7 @@ cp .env.example .env
 
 Fill in the values. See the [Environment variables](#environment-variables) section below.
 
-### 2. Database
+### 2. Database 
 
 **Hosted Supabase:**
 
