@@ -73,7 +73,7 @@ psql "$SUPABASE_DB_URL" -f seed.sql
 ```
 
 **Local Supabase:**
-
+ 
 ```bash
 supabase start
 supabase db reset    # applies migrations + seed
