@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Call Analyzer — Master Pipeline Diagram</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .badge {
+      background: #1d4ed8;
+      color: #bfdbfe;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 32px;
+      background: #1e293b;
+      border-bottom: 1px solid #1e3a5f;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .diagram-wrap {
+      padding: 32px;
+      overflow-x: auto;
+    }
+
+    .mermaid {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+      border: 1px solid #334155;
+      min-width: 1100px;
+    }
+
+    /* stage cards */
+    .stages {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 0 32px 32px;
+    }
+
+    .stage-card {
+      background: #1e293b;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      overflow: hidden;
+    }
+
+    .stage-header {
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stage-body {
+      padding: 12px 16px;
+    }
+
+    .stage-body ul {
+      list-style: none;
+      space-y: 4px;
+    }
+
+    .stage-body li {
+      font-size: 12px;
+      color: #94a3b8;
+      padding: 3px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .stage-body li::before {
+      content: '→';
+      color: #475569;
+      font-size: 11px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+
+    section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 24px 32px 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Call Analyzer — Master Pipeline</h1>
+    <p>WeBuildTrades · n8n Workflow 00-master-pipeline · 34 nodes</p>
+  </div>
+  <span class="badge">LIVE</span>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Entry / Webhook</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> Ingest</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div> Classify (Groq 8B)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div> Rule Engine (JS)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#db2777"></div> LLM Scorecard (Groq 70B)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div> Meeting Summary (Groq 70B)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0284c7"></div> Notify / Email</div>
+</div>
+
+<div class="diagram-wrap">
+  <div class="mermaid">
+flowchart TD
+  A(["📞 Fathom\nCall Ends"]) --> B["Webhook\n/fathom-master"]
+  B --> C["Verify HMAC\nsha256 signature"]
+  C --> D["Check Duplicate\nlookup source_id"]
+  D --> DUP{"Already\nprocessed?"}
+  DUP -->|"Yes"| SKIP(["✓ 200 Duplicate\nskip"])
+  DUP -->|"No"| INS["Insert Call\ncalls table · status: pending"]
+
+  INS --> CL["Classify with Groq\nLlama 3.1 8B · 300 tokens\nfirst 2000 chars of transcript"]
+  CL --> PC["Parse Classification\ndiscovery / ads_intro / launch\nfollow_up / team / other"]
+  PC --> UC["Update Call Type\nstatus: processing"]
+  UC --> TEAM{"call_type\n= team?"}
+
+  TEAM -->|"YES — internal meeting"| GM
+  TEAM -->|"NO — client call"| RUL
+
+  subgraph SALES["  SALES CALL PIPELINE  "]
+    direction TB
+    subgraph RE["Rule Engine — Pure JavaScript"]
+      RUL["Get Active Rubric\n+ Get Call Data"]
+      RUL --> RR["Run Rules\n① Banned words per call type\n② Filler word counts\n③ Talk ratio  60%"]
+      RR --> HF{"Findings?"}
+      HF -->|"Yes"| BF["Build + Insert\nrule_findings table\nwith coaching suggestions"]
+      HF -->|"No"| SC
+      BF --> SC
+    end
+    subgraph SC["LLM Scorecard — Groq Llama 3.3 70B"]
+      SG["Score with Groq\nFull transcript + rubric\n4000 tokens · weighted scoring"]
+      SG --> PS["Parse Scorecard\noverall_score 0–10\nstrengths + improvements\nwith evidence quotes"]
+      PS --> IS["Insert Scorecard\nscorecard_evidence table"]
+    end
+  end
+
+  subgraph TEAM_PIPE["  TEAM CALL PIPELINE  "]
+    direction TB
+    GM["Generate Meeting Summary\nGroq Llama 3.3 70B · 3000 tokens"]
+    GM --> PMM["Parse Summary\ntitle · key_points\ndecisions_made · action_items\nopen_questions"]
+    PMM --> SM["Store in Scorecards\noverall_score = null"]
+    SM --> SE["Insert Evidence\naction_item / decision\nopen_question rows"]
+  end
+
+  IS --> UCS["Update Call\nstatus: scored"]
+  SE --> UCS
+
+  UCS --> GP["Get Participants\ninternal team only\nwith email addresses"]
+  UCS --> GS["Get Final Scorecard"]
+  GP --> BEL["Build Email List\none payload per recipient\nwith portal deep-link"]
+  GS --> BEL
+  BEL --> HR{"Recipients\nfound?"}
+  HR -->|"Yes"| EM["Send HTML Email\nscore · summary\nstrengths · improvements\nCTA to portal"]
+  HR -->|"No"| R200
+  EM --> R200(["✓ 200 OK\nFathom confirmed"])
+
+  style A fill:#1d4ed8,color:#fff,stroke:#1d4ed8
+  style B fill:#1d4ed8,color:#fff,stroke:#1d4ed8
+  style C fill:#1d4ed8,color:#fff,stroke:#1d4ed8
+  style D fill:#1d4ed8,color:#fff,stroke:#1d4ed8
+  style DUP fill:#1e3a5f,color:#93c5fd,stroke:#3b82f6
+  style SKIP fill:#0f172a,color:#64748b,stroke:#334155
+  style INS fill:#5b21b6,color:#fff,stroke:#5b21b6
+  style CL fill:#92400e,color:#fef3c7,stroke:#d97706
+  style PC fill:#92400e,color:#fef3c7,stroke:#d97706
+  style UC fill:#92400e,color:#fef3c7,stroke:#d97706
+  style TEAM fill:#1e293b,color:#94a3b8,stroke:#334155
+  style RUL fill:#7f1d1d,color:#fecaca,stroke:#dc2626
+  style RR fill:#7f1d1d,color:#fecaca,stroke:#dc2626
+  style HF fill:#1e293b,color:#94a3b8,stroke:#334155
+  style BF fill:#7f1d1d,color:#fecaca,stroke:#dc2626
+  style SG fill:#831843,color:#fce7f3,stroke:#db2777
+  style PS fill:#831843,color:#fce7f3,stroke:#db2777
+  style IS fill:#831843,color:#fce7f3,stroke:#db2777
+  style GM fill:#14532d,color:#bbf7d0,stroke:#16a34a
+  style PMM fill:#14532d,color:#bbf7d0,stroke:#16a34a
+  style SM fill:#14532d,color:#bbf7d0,stroke:#16a34a
+  style SE fill:#14532d,color:#bbf7d0,stroke:#16a34a
+  style UCS fill:#0c4a6e,color:#bae6fd,stroke:#0284c7
+  style GP fill:#0c4a6e,color:#bae6fd,stroke:#0284c7
+  style GS fill:#0c4a6e,color:#bae6fd,stroke:#0284c7
+  style BEL fill:#0c4a6e,color:#bae6fd,stroke:#0284c7
+  style HR fill:#1e293b,color:#94a3b8,stroke:#334155
+  style EM fill:#0c4a6e,color:#bae6fd,stroke:#0284c7
+  style R200 fill:#0c4a6e,color:#bae6fd,stroke:#0284c7
+  style SALES fill:#1a0a0a,color:#fca5a5,stroke:#7f1d1d
+  style RE fill:#1a0a0a,color:#fca5a5,stroke:#7f1d1d
+  style SC fill:#1a0012,color:#f9a8d4,stroke:#831843
+  style TEAM_PIPE fill:#052e16,color:#86efac,stroke:#166534
+  </div>
+</div>
+
+<section>
+  <h2>Stage Breakdown</h2>
+  <div class="stages">
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#1e3a5f;color:#93c5fd;">Entry — Fathom Webhook</div>
+      <div class="stage-body">
+        <ul>
+          <li>Fathom fires POST when any call recording ends</li>
+          <li>HMAC-SHA256 signature verified against secret</li>
+          <li>Duplicate check via <code>source_id</code> lookup</li>
+          <li>If duplicate → silent 200, stop processing</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#2e1065;color:#c4b5fd;">Ingest</div>
+      <div class="stage-body">
+        <ul>
+          <li>New row in <code>calls</code> table, status: <strong>pending</strong></li>
+          <li>Stores transcript_raw, transcript_segments, audio_url</li>
+          <li>Records duration, recorded_at, source_id</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#451a03;color:#fde68a;">Classify — Groq Llama 3.1 8B</div>
+      <div class="stage-body">
+        <ul>
+          <li>First 2,000 chars sent to fast 8B model</li>
+          <li>Returns: discovery / ads_intro / launch / follow_up / team / other</li>
+          <li>Updates <code>calls</code> row, status: <strong>processing</strong></li>
+          <li>Routes to team branch OR sales branch</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#450a0a;color:#fca5a5;">Rule Engine — Pure JavaScript</div>
+      <div class="stage-body">
+        <ul>
+          <li><strong>Banned words</strong> — e.g. "mate" on discovery calls → critical finding</li>
+          <li><strong>Filler words</strong> — "um" &gt;5 times → warning finding</li>
+          <li><strong>Talk ratio</strong> — rep &gt;60% of call → warning finding</li>
+          <li>All findings stored with coaching suggestion text</li>
+          <li>No LLM — deterministic, instant, zero cost</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#500724;color:#fbcfe8;">LLM Scorecard — Groq Llama 3.3 70B</div>
+      <div class="stage-body">
+        <ul>
+          <li>Full transcript + active rubric sent to 70B model</li>
+          <li>Scores 5 criteria: talk ratio, question stack, pain surfacing, objection handling, solution timing</li>
+          <li>Weighted overall score 0–10</li>
+          <li>Every strength/improvement must include exact transcript quote</li>
+          <li>Rubric is editable from the portal — no code changes needed</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#052e16;color:#86efac;">Meeting Summary — Groq Llama 3.3 70B</div>
+      <div class="stage-body">
+        <ul>
+          <li>Only runs for team/internal calls</li>
+          <li>Extracts: title, key points, decisions made (with owner)</li>
+          <li>Action items with owner name, due date, priority</li>
+          <li>Open questions + next meeting topics</li>
+          <li>Stored as scorecard with overall_score = null</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#0c2840;color:#bae6fd;">Notify — Email per Participant</div>
+      <div class="stage-body">
+        <ul>
+          <li>Call marked <strong>scored</strong> in database</li>
+          <li>Fetches all internal participants with emails</li>
+          <li>One personalised HTML email per rep</li>
+          <li>Contains: score, summary, top 3 strengths, top 3 improvements</li>
+          <li>Deep-link button to call detail page in portal</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header" style="background:#1e293b;color:#94a3b8;">Database Tables Written</div>
+      <div class="stage-body">
+        <ul>
+          <li><code>calls</code> — created on ingest, status updated each stage</li>
+          <li><code>rule_findings</code> — banned words, fillers, talk ratio</li>
+          <li><code>scorecards</code> — overall score, summary, strengths, improvements</li>
+          <li><code>scorecard_evidence</code> — exact quotes with timestamps</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    flowchart: { curve: 'basis', padding: 20 },
+    themeVariables: {
+      background: '#1e293b',
+      primaryColor: '#1e3a5f',
+      primaryTextColor: '#f1f5f9',
+      primaryBorderColor: '#3b82f6',
+      lineColor: '#475569',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#1e293b',
+      fontSize: '13px',
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,707 @@
+{
+  "name": "00 - Master Pipeline",
+  "nodes": [
+    {
+      "id": "master-0001",
+      "name": "Fathom Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 340],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fathom-master",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0002",
+      "name": "Verify HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 340],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require('crypto');\nconst secret = $env.FATHOM_WEBHOOK_SECRET || '';\nif (secret) {\n  const sig = $input.first().json.headers?.['x-fathom-signature'] || '';\n  const body = JSON.stringify($input.first().json.body);\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');\n  if (sig !== expected) throw new Error('Invalid HMAC signature');\n}\nreturn $input.all();"
+      }
+    },
+    {
+      "id": "master-0003",
+      "name": "Check Duplicate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [640, 340],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "source_id", "value": "=eq.{{ $json.body.id }}" },
+            { "name": "select", "value": "id" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0004",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [860, 340],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-dup", "leftValue": "={{ $json.length }}", "rightValue": 0, "operator": { "type": "number", "operation": "equals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "master-0005",
+      "name": "Insert Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1080, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"source\": \"fathom\",\n  \"source_id\": \"{{ $('Verify HMAC').item.json.body.id }}\",\n  \"status\": \"pending\",\n  \"transcript_raw\": {{ JSON.stringify($('Verify HMAC').item.json.body.transcript?.full_transcript || '') }},\n  \"transcript_segments\": {{ JSON.stringify($('Verify HMAC').item.json.body.transcript?.segments || []) }},\n  \"audio_url\": {{ JSON.stringify($('Verify HMAC').item.json.body.recording_url || null) }},\n  \"recorded_at\": {{ JSON.stringify($('Verify HMAC').item.json.body.start_time || null) }},\n  \"duration_seconds\": {{ $('Verify HMAC').item.json.body.duration || 0 }}\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0006",
+      "name": "Classify with Groq",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"max_tokens\": 300,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a call classifier for WeBuildTrades. Call types: discovery, ads_intro, launch, follow_up, team, other. Respond with valid JSON only: {\\\"call_type\\\": \\\"...\\\", \\\"confidence\\\": 0.0-1.0, \\\"reasoning\\\": \\\"one sentence\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Classify this call (first 2000 chars):\\n\\n{{ ($('Verify HMAC').item.json.body.transcript?.full_transcript || '').substring(0, 2000) }}\"\n    }\n  ]\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0007",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Insert Call').first().json[0].id;\nconst validTypes = ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'];\nlet classification;\ntry { classification = JSON.parse(responseText); } catch (e) { classification = { call_type: 'other', confidence: 0, reasoning: 'parse error' }; }\nif (!validTypes.includes(classification.call_type)) classification.call_type = 'other';\nreturn [{ json: { ...classification, call_id: callId } }];"
+      }
+    },
+    {
+      "id": "master-0008",
+      "name": "Update Call Type",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1740, 200],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $json.call_id }}" }] },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={ \"call_type\": \"{{ $('Parse Classification').item.json.call_type }}\", \"status\": \"processing\" }" },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0009",
+      "name": "Is Team Call?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1960, 200],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-team", "leftValue": "={{ $('Parse Classification').item.json.call_type }}", "rightValue": "team", "operator": { "type": "string", "operation": "equals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "master-0010",
+      "name": "Get Active Rubric",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2180, 340],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rubrics",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select", "value": "*" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0011",
+      "name": "Get Call Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2180, 500],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "=eq.{{ $('Parse Classification').item.json.call_id }}" },
+            { "name": "select", "value": "*" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0012",
+      "name": "Run Rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 340],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const call = $('Get Call Data').first().json[0];\nconst rubricRow = $('Get Active Rubric').first().json[0];\nif (!call) throw new Error('Call not found');\nif (!rubricRow) throw new Error('No active rubric');\nconst rules = rubricRow.content;\nconst callId = call.id;\nconst callType = call.call_type || 'other';\nconst findings = [];\nconst segments = Array.isArray(call.transcript_segments) ? call.transcript_segments : [];\nlet repLabel = 'host';\nif (segments.length > 0) { const speakers = [...new Set(segments.map(s => s.speaker).filter(Boolean))]; if (!speakers.includes('host') && speakers.length > 0) repLabel = speakers[0]; }\nconst repSegments = segments.filter(s => s.speaker === repLabel);\nconst repText = repSegments.map(s => s.text || s.content || '').join(' ');\nfor (const banned of (rules.banned_words || [])) {\n  const appliesTo = banned.applies_to_call_types || [];\n  if (appliesTo.length > 0 && !appliesTo.includes(callType)) continue;\n  const word = banned.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  if (matches.length > 0) {\n    const contextSnippets = repSegments.filter(s => (s.text || s.content || '').toLowerCase().includes(word)).slice(0, 5).map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Do not use the word \"${banned.word}\" on ${appliesTo.join(' or ')} calls. ${banned.reason || ''} You said it ${matches.length} time${matches.length > 1 ? 's' : ''} on this call.`;\n    findings.push({ call_id: callId, rule_key: 'banned_word_' + word, value: { word, count: matches.length, suggestion }, severity: banned.severity || 'critical', context_snippets: contextSnippets });\n  }\n}\nfor (const filler of (rules.filler_words || [])) {\n  const word = filler.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  const count = matches.length;\n  const threshold = filler.threshold_per_call || 5;\n  if (count > threshold) {\n    const contextSnippets = repSegments.filter(s => (s.text || s.content || '').toLowerCase().includes(word)).slice(0, 3).map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Reduce use of \"${word}\". You said it ${count} times (target: under ${threshold}). Replace with a deliberate pause.`;\n    findings.push({ call_id: callId, rule_key: 'filler_word_' + word, value: { word, count, threshold, suggestion }, severity: filler.severity || 'warning', context_snippets: contextSnippets });\n  }\n}\nconst totalSeconds = call.duration_seconds || 0;\nif (rules.talk_ratio && totalSeconds > 0 && segments.length > 0) {\n  const repSeconds = repSegments.reduce((sum, s) => sum + Math.max(0, (s.end_time || 0) - (s.start_time || 0)), 0);\n  const repPercentage = Math.round((repSeconds / totalSeconds) * 100);\n  const maxPercentage = rules.talk_ratio.max_rep_percentage || 60;\n  if (repPercentage > maxPercentage) {\n    const suggestion = `You spoke for ${repPercentage}% of this call — target is under ${maxPercentage}%. Ask a question, then stop talking.`;\n    findings.push({ call_id: callId, rule_key: 'talk_ratio', value: { rep_percentage: repPercentage, max_allowed: maxPercentage, suggestion }, severity: rules.talk_ratio.severity || 'warning', context_snippets: [] });\n  }\n}\nif (findings.length === 0) return [{ json: { __no_findings: true, call_id: callId } }];\nreturn findings.map(f => ({ json: f }));"
+      }
+    },
+    {
+      "id": "master-0013",
+      "name": "Has Findings?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2620, 340],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-findings", "leftValue": "={{ $json.__no_findings }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "master-0014",
+      "name": "Build Findings Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2840, 240],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const findings = $input.all().map(item => ({ call_id: item.json.call_id, rule_key: item.json.rule_key, value: item.json.value, severity: item.json.severity, context_snippets: item.json.context_snippets || [] }));\nreturn [{ json: { findings } }];"
+      }
+    },
+    {
+      "id": "master-0015",
+      "name": "Insert Rule Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3060, 240],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rule_findings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.findings) }}" },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0016",
+      "name": "Score with Groq",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2840, 440],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 4000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert sales coach for WeBuildTrades. Evaluate the rep against this rubric:\\n{{ JSON.stringify($('Get Active Rubric').first().json[0].content, null, 2) }}\\n\\nReturn ONLY valid JSON: {\\\"overall_score\\\": <0-10>, \\\"summary\\\": \\\"...\\\", \\\"strengths\\\": [{\\\"criterion\\\": \\\"...\\\", \\\"score\\\": 0-10, \\\"description\\\": \\\"...\\\", \\\"evidence_quote\\\": \\\"...\\\", \\\"timestamp_seconds\\\": null}], \\\"improvements\\\": [{\\\"criterion\\\": \\\"...\\\", \\\"score\\\": 0-10, \\\"description\\\": \\\"...\\\", \\\"evidence_quote\\\": \\\"...\\\", \\\"timestamp_seconds\\\": null}]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Evaluate this call:\\n\\n{{ $('Get Call Data').first().json[0].transcript_raw || 'No transcript available.' }}\"\n    }\n  ]\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0017",
+      "name": "Parse Scorecard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3060, 440],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Parse Classification').first().json.call_id;\nconst rubric = $('Get Active Rubric').first().json[0];\nlet scorecard;\ntry { scorecard = JSON.parse(responseText); } catch (e) { throw new Error('Failed to parse scorecard: ' + responseText.substring(0, 300)); }\nif (typeof scorecard.overall_score !== 'number') scorecard.overall_score = 0;\nif (!Array.isArray(scorecard.strengths)) scorecard.strengths = [];\nif (!Array.isArray(scorecard.improvements)) scorecard.improvements = [];\nif (!scorecard.summary) scorecard.summary = '';\nconst allEvidence = [\n  ...scorecard.strengths.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null })),\n  ...scorecard.improvements.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null }))\n];\nreturn [{ json: { call_id: callId, rubric_id: rubric.id, overall_score: Math.round(scorecard.overall_score * 10) / 10, summary: scorecard.summary, strengths: scorecard.strengths, improvements: scorecard.improvements, llm_model: 'llama-3.3-70b-versatile', all_evidence: allEvidence } }];"
+      }
+    },
+    {
+      "id": "master-0018",
+      "name": "Insert Scorecard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3280, 440],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"call_id\": \"{{ $json.call_id }}\",\n  \"rubric_id\": \"{{ $json.rubric_id }}\",\n  \"overall_score\": {{ $json.overall_score }},\n  \"summary\": {{ JSON.stringify($json.summary) }},\n  \"strengths\": {{ JSON.stringify($json.strengths) }},\n  \"improvements\": {{ JSON.stringify($json.improvements) }},\n  \"llm_model\": \"{{ $json.llm_model }}\"\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0019",
+      "name": "Build Evidence Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3500, 440],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const scorecardId = $('Insert Scorecard').first().json[0].id;\nconst allEvidence = $('Parse Scorecard').first().json.all_evidence || [];\nif (allEvidence.length === 0) return [{ json: { __skip_evidence: true } }];\nconst evidenceRows = allEvidence.map(e => ({ scorecard_id: scorecardId, criterion_key: e.criterion_key, quote: e.quote, timestamp_seconds: e.timestamp_seconds }));\nreturn [{ json: { evidence: evidenceRows } }];"
+      }
+    },
+    {
+      "id": "master-0020",
+      "name": "Has Evidence?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3720, 440],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-ev", "leftValue": "={{ $json.__skip_evidence }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "master-0021",
+      "name": "Insert Evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3940, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecard_evidence",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.evidence) }}" },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0022",
+      "name": "Generate Meeting Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2180, 60],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 3000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert meeting intelligence agent for WeBuildTrades. Analyze the meeting transcript and return ONLY valid JSON:\\n{\\\"title\\\": \\\"...\\\", \\\"one_line_summary\\\": \\\"...\\\", \\\"key_points\\\": [\\\"...\\\"], \\\"decisions_made\\\": [{\\\"decision\\\": \\\"...\\\", \\\"decided_by\\\": \\\"...\\\", \\\"context\\\": \\\"...\\\"}], \\\"action_items\\\": [{\\\"task\\\": \\\"...\\\", \\\"owner\\\": \\\"...\\\", \\\"due\\\": null, \\\"priority\\\": \\\"high\\\"|\\\"medium\\\"|\\\"low\\\"}], \\\"improvements_suggested\\\": [{\\\"area\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\", \\\"suggested_by\\\": \\\"...\\\"}], \\\"open_questions\\\": [\\\"...\\\"], \\\"next_meeting_topics\\\": [\\\"...\\\"]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this meeting:\\n\\nCall type: {{ $('Parse Classification').item.json.call_type }}\\nDuration: {{ $('Get Call Data').first().json[0].duration_seconds }} seconds\\n\\nTranscript:\\n{{ $('Get Call Data').first().json[0].transcript_raw || 'No transcript available.' }}\"\n    }\n  ]\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0023",
+      "name": "Parse Meeting Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Parse Classification').first().json.call_id;\nlet summary;\ntry { summary = JSON.parse(responseText); } catch (e) { throw new Error('Failed to parse meeting summary: ' + responseText.substring(0, 300)); }\nif (!Array.isArray(summary.key_points)) summary.key_points = [];\nif (!Array.isArray(summary.decisions_made)) summary.decisions_made = [];\nif (!Array.isArray(summary.action_items)) summary.action_items = [];\nif (!Array.isArray(summary.improvements_suggested)) summary.improvements_suggested = [];\nif (!Array.isArray(summary.open_questions)) summary.open_questions = [];\nif (!Array.isArray(summary.next_meeting_topics)) summary.next_meeting_topics = [];\nreturn [{ json: { call_id: callId, summary } }];"
+      }
+    },
+    {
+      "id": "master-0024",
+      "name": "Store Meeting Scorecard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2620, 60],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"call_id\": \"{{ $json.call_id }}\",\n  \"rubric_id\": \"00000000-0000-0000-0000-000000000002\",\n  \"overall_score\": null,\n  \"summary\": {{ JSON.stringify($json.summary.one_line_summary) }},\n  \"strengths\": {{ JSON.stringify($json.summary.key_points.map(p => ({ point: p }))) }},\n  \"improvements\": {{ JSON.stringify($json.summary.improvements_suggested) }},\n  \"llm_model\": \"llama-3.3-70b-versatile\"\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0025",
+      "name": "Store Meeting Evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2840, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const scorecardId = $('Store Meeting Scorecard').first().json[0].id;\nconst summary = $('Parse Meeting Summary').first().json.summary;\nconst evidenceRows = [\n  ...(summary.action_items || []).map(item => ({ scorecard_id: scorecardId, criterion_key: 'action_item', quote: item.task + (item.owner ? ' — Owner: ' + item.owner : '') + (item.due ? ' — Due: ' + item.due : ''), timestamp_seconds: null })),\n  ...(summary.decisions_made || []).map(d => ({ scorecard_id: scorecardId, criterion_key: 'decision', quote: d.decision + (d.decided_by ? ' (decided by ' + d.decided_by + ')' : ''), timestamp_seconds: null })),\n  ...(summary.open_questions || []).map(q => ({ scorecard_id: scorecardId, criterion_key: 'open_question', quote: q, timestamp_seconds: null }))\n];\nif (evidenceRows.length === 0) return [{ json: { call_id: $('Parse Meeting Summary').first().json.call_id } }];\nreturn [{ json: { evidence: evidenceRows, call_id: $('Parse Meeting Summary').first().json.call_id } }];"
+      }
+    },
+    {
+      "id": "master-0026",
+      "name": "Insert Meeting Evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3060, 60],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecard_evidence",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.evidence) }}" },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0027",
+      "name": "Update Call Scored",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4160, 340],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" }] },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={ \"status\": \"scored\" }" },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0028",
+      "name": "Get Participants",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4380, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/call_participants",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "call_id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" },
+            { "name": "is_external", "value": "eq.false" },
+            { "name": "select", "value": "*,team_members(name,email,role)" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0029",
+      "name": "Get Final Scorecard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4380, 400],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "call_id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" },
+            { "name": "select", "value": "*" },
+            { "name": "order", "value": "created_at.desc" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0030",
+      "name": "Build Email List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4600, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const participants = $('Get Participants').all();\nconst scorecard = $('Get Final Scorecard').first().json[0];\nconst callId = $('Parse Classification').first().json.call_id;\nconst portalUrl = ($env.PORTAL_URL || 'http://localhost:5173') + '/calls/' + callId;\nif (!scorecard) return [{ json: { __no_scorecard: true } }];\nconst strengths = (scorecard.strengths || []).slice(0, 3);\nconst improvements = (scorecard.improvements || []).slice(0, 3);\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({ to: p.json.team_members.email, name: p.json.team_members.name || 'Team Member', overall_score: scorecard.overall_score, summary: scorecard.summary || '', strengths, improvements, portal_url: portalUrl }));\nif (emailTargets.length === 0) return [{ json: { __no_recipients: true } }];\nreturn emailTargets.map(t => ({ json: t }));"
+      }
+    },
+    {
+      "id": "master-0031",
+      "name": "Has Recipients?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [4820, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-recip", "leftValue": "={{ $json.__no_recipients || $json.__no_scorecard }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "master-0032",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [5040, 200],
+      "parameters": {
+        "toEmail": "={{ $json.to }}",
+        "subject": "=Your call scorecard is ready — {{ $json.overall_score }}/10",
+        "emailType": "html",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <h2 style=\"color: #1a1a2e;\">Call Scorecard Ready</h2>\n  <p>Hi {{ $json.name }},</p>\n  <p>Your call has been analyzed. Here is your coaching summary:</p>\n  <div style=\"background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 16px; margin: 16px 0; border-radius: 4px;\">\n    <h3 style=\"margin: 0 0 8px; color: #1a1a2e;\">Overall Score: {{ $json.overall_score }}/10</h3>\n    <p style=\"margin: 0; color: #444;\">{{ $json.summary }}</p>\n  </div>\n  <h3>Top Strengths</h3>\n  <ul>{{ $json.strengths.map(s => '<li>' + (s.criterion || s.point || '') + ': ' + (s.description || '') + '</li>').join('') }}</ul>\n  <h3>Areas to Improve</h3>\n  <ul>{{ $json.improvements.map(i => '<li>' + (i.criterion || i.area || '') + ': ' + (i.description || i.suggestion || '') + '</li>').join('') }}</ul>\n  <div style=\"margin: 24px 0;\">\n    <a href=\"{{ $json.portal_url }}\" style=\"background: #1a1a2e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;\">View Full Scorecard</a>\n  </div>\n  <p style=\"color: #888; font-size: 12px;\">Generated by WeBuildTrades Call Analyzer</p>\n</div>",
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0033",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [5260, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"call_id\": \"{{ $('Parse Classification').first().json.call_id }}\", \"call_type\": \"{{ $('Parse Classification').first().json.call_type }}\" }",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "master-0034",
+      "name": "Respond 200 Duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1080, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"duplicate\": true }",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Fathom Webhook": { "main": [[{ "node": "Verify HMAC", "type": "main", "index": 0 }]] },
+    "Verify HMAC": { "main": [[{ "node": "Check Duplicate", "type": "main", "index": 0 }]] },
+    "Check Duplicate": { "main": [[{ "node": "Is Duplicate?", "type": "main", "index": 0 }]] },
+    "Is Duplicate?": {
+      "main": [
+        [{ "node": "Insert Call", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200 Duplicate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert Call": { "main": [[{ "node": "Classify with Groq", "type": "main", "index": 0 }]] },
+    "Classify with Groq": { "main": [[{ "node": "Parse Classification", "type": "main", "index": 0 }]] },
+    "Parse Classification": { "main": [[{ "node": "Update Call Type", "type": "main", "index": 0 }]] },
+    "Update Call Type": { "main": [[{ "node": "Is Team Call?", "type": "main", "index": 0 }]] },
+    "Is Team Call?": {
+      "main": [
+        [{ "node": "Generate Meeting Summary", "type": "main", "index": 0 }],
+        [
+          { "node": "Get Active Rubric", "type": "main", "index": 0 },
+          { "node": "Get Call Data", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Active Rubric": { "main": [[{ "node": "Run Rules", "type": "main", "index": 0 }]] },
+    "Get Call Data": { "main": [[{ "node": "Run Rules", "type": "main", "index": 0 }]] },
+    "Run Rules": { "main": [[{ "node": "Has Findings?", "type": "main", "index": 0 }]] },
+    "Has Findings?": {
+      "main": [
+        [{ "node": "Build Findings Array", "type": "main", "index": 0 }],
+        [{ "node": "Score with Groq", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Findings Array": { "main": [[{ "node": "Insert Rule Findings", "type": "main", "index": 0 }]] },
+    "Insert Rule Findings": { "main": [[{ "node": "Score with Groq", "type": "main", "index": 0 }]] },
+    "Score with Groq": { "main": [[{ "node": "Parse Scorecard", "type": "main", "index": 0 }]] },
+    "Parse Scorecard": { "main": [[{ "node": "Insert Scorecard", "type": "main", "index": 0 }]] },
+    "Insert Scorecard": { "main": [[{ "node": "Build Evidence Array", "type": "main", "index": 0 }]] },
+    "Build Evidence Array": { "main": [[{ "node": "Has Evidence?", "type": "main", "index": 0 }]] },
+    "Has Evidence?": {
+      "main": [
+        [{ "node": "Insert Evidence", "type": "main", "index": 0 }],
+        [{ "node": "Update Call Scored", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
+    "Generate Meeting Summary": { "main": [[{ "node": "Parse Meeting Summary", "type": "main", "index": 0 }]] },
+    "Parse Meeting Summary": { "main": [[{ "node": "Store Meeting Scorecard", "type": "main", "index": 0 }]] },
+    "Store Meeting Scorecard": { "main": [[{ "node": "Store Meeting Evidence", "type": "main", "index": 0 }]] },
+    "Store Meeting Evidence": { "main": [[{ "node": "Insert Meeting Evidence", "type": "main", "index": 0 }]] },
+    "Insert Meeting Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
+    "Update Call Scored": {
+      "main": [[
+        { "node": "Get Participants", "type": "main", "index": 0 },
+        { "node": "Get Final Scorecard", "type": "main", "index": 0 }
+      ]]
+    },
+    "Get Participants": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
+    "Get Final Scorecard": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
+    "Build Email List": { "main": [[{ "node": "Has Recipients?", "type": "main", "index": 0 }]] },
+    "Has Recipients?": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

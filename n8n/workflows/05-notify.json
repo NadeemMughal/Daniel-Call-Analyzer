@@ -1,0 +1,168 @@
+{
+  "name": "05 - Notify Participants",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-notify",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000002",
+      "name": "Get Participants",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/call_participants",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "call_id", "value": "=eq.{{ $json.call_id }}" },
+            { "name": "is_external", "value": "eq.false" },
+            { "name": "select", "value": "*,team_members(name,email,role)" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000003a",
+      "name": "Get Rule Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 400],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rule_findings",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "call_id", "value": "=eq.{{ $('Webhook').first().json.call_id }}" },
+            { "name": "select", "value": "*" },
+            { "name": "order", "value": "severity.desc" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000003",
+      "name": "Get Scorecard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 580],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "call_id", "value": "=eq.{{ $('Webhook').first().json.call_id }}" },
+            { "name": "select", "value": "*" },
+            { "name": "order", "value": "created_at.desc" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000004",
+      "name": "Build Email List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const participants = $('Get Participants').all();\nconst scorecard = $('Get Scorecard').first().json[0];\nconst ruleFindings = $('Get Rule Findings').all().map(i => i.json);\nconst callId = $('Webhook').first().json.call_id;\nconst portalUrl = ($env.PORTAL_URL || 'http://localhost:5173') + '/calls/' + callId;\n\nif (!scorecard) return [{ json: { __no_scorecard: true } }];\n\nconst strengths = (scorecard.strengths || []).slice(0, 3);\nconst improvements = (scorecard.improvements || []).slice(0, 3);\n\nconst coachingPoints = ruleFindings\n  .filter(f => f.value && f.value.suggestion)\n  .map(f => ({ severity: f.severity, suggestion: f.value.suggestion, rule_key: f.rule_key }));\n\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({\n    to: p.json.team_members.email,\n    name: p.json.team_members.name || 'Team Member',\n    overall_score: scorecard.overall_score,\n    summary: scorecard.summary || '',\n    strengths,\n    improvements,\n    coaching_points: coachingPoints,\n    portal_url: portalUrl\n  }));\n\nif (emailTargets.length === 0) return [{ json: { __no_recipients: true } }];\nreturn emailTargets.map(t => ({ json: t }));"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000005",
+      "name": "Has Recipients?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [920, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-recipients-01", "leftValue": "={{ $json.__no_recipients || $json.__no_scorecard }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000006",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1120, 200],
+      "parameters": {
+        "toEmail": "={{ $json.to }}",
+        "subject": "=Your call scorecard is ready — {{ $json.overall_score }}/10",
+        "emailType": "html",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <h2 style=\"color: #1a1a2e;\">Call Scorecard Ready</h2>\n  <p>Hi {{ $json.name }},</p>\n  <p>Your call has been analyzed. Here is your coaching summary:</p>\n\n  <div style=\"background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 16px; margin: 16px 0; border-radius: 4px;\">\n    <h3 style=\"margin: 0 0 8px; color: #1a1a2e;\">Overall Score: {{ $json.overall_score }}/10</h3>\n    <p style=\"margin: 0; color: #444;\">{{ $json.summary }}</p>\n  </div>\n\n  {{ $json.coaching_points && $json.coaching_points.length > 0 ? '<h3 style=\"color: #c0392b;\">Coaching Points</h3><ul>' + $json.coaching_points.map(p => '<li>' + p.suggestion + '</li>').join('') + '</ul>' : '' }}\n\n  <h3 style=\"color: #1a1a2e;\">Top Strengths</h3>\n  <ul>{{ $json.strengths.map(s => '<li><strong>' + s.criterion + ':</strong> ' + s.description + '</li>').join('') }}</ul>\n\n  <h3 style=\"color: #1a1a2e;\">Areas to Improve</h3>\n  <ul>{{ $json.improvements.map(i => '<li><strong>' + i.criterion + ':</strong> ' + i.description + '</li>').join('') }}</ul>\n\n  <div style=\"margin: 24px 0;\">\n    <a href=\"{{ $json.portal_url }}\" style=\"background: #1a1a2e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;\">View Full Scorecard</a>\n  </div>\n\n  <p style=\"color: #888; font-size: 12px;\">This feedback was generated automatically by the WeBuildTrades Call Analyzer.</p>\n</div>",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000007",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Get Participants", "type": "main", "index": 0 }, { "node": "Get Rule Findings", "type": "main", "index": 0 }, { "node": "Get Scorecard", "type": "main", "index": 0 }]] },
+    "Get Participants": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
+    "Get Rule Findings": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
+    "Get Scorecard": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
+    "Build Email List": { "main": [[{ "node": "Has Recipients?", "type": "main", "index": 0 }]] },
+    "Has Recipients?": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567805"
+}

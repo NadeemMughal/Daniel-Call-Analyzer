@@ -1,0 +1,173 @@
+{
+  "name": "01 - Ingest Fathom Call",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fathom-call-completed",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "Verify HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require('crypto');\nconst secret = $env.FATHOM_WEBHOOK_SECRET || '';\nif (secret) {\n  const sig = $input.first().json.headers?.['x-fathom-signature'] || '';\n  const body = JSON.stringify($input.first().json.body);\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');\n  if (sig !== expected) throw new Error('Invalid HMAC signature');\n}\nreturn $input.all();"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "name": "Check Duplicate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "source_id", "value": "=eq.{{ $json.body.id }}" },
+            { "name": "select", "value": "id" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000004",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-dup-01",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000005",
+      "name": "Insert Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"source\": \"fathom\",\n  \"source_id\": \"{{ $('Verify HMAC').item.json.body.id }}\",\n  \"status\": \"pending\",\n  \"transcript_raw\": {{ JSON.stringify($('Verify HMAC').item.json.body.transcript?.full_transcript || '') }},\n  \"transcript_segments\": {{ JSON.stringify($('Verify HMAC').item.json.body.transcript?.segments || []) }},\n  \"audio_url\": {{ JSON.stringify($('Verify HMAC').item.json.body.recording_url || null) }},\n  \"recorded_at\": {{ JSON.stringify($('Verify HMAC').item.json.body.start_time || null) }},\n  \"duration_seconds\": {{ $('Verify HMAC').item.json.body.duration || 0 }}\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000006",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true }",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000007",
+      "name": "Trigger Classify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 120],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_BASE_URL }}/webhook/call-classify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={ \"call_id\": \"{{ $('Insert Call').first().json[0].id }}\" }"
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Verify HMAC", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verify HMAC": {
+      "main": [
+        [{ "node": "Check Duplicate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Duplicate": {
+      "main": [
+        [{ "node": "Is Duplicate?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [{ "node": "Insert Call", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert Call": {
+      "main": [
+        [
+          { "node": "Respond 200", "type": "main", "index": 0 },
+          { "node": "Trigger Classify", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567801"
+}

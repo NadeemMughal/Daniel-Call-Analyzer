@@ -1,0 +1,259 @@
+{
+  "name": "04 - LLM Scorecard",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-scorecard",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000002",
+      "name": "Get Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "=eq.{{ $json.call_id }}" },
+            { "name": "select", "value": "*" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000003",
+      "name": "Get Active Rubric",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 400],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rubrics",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select", "value": "*" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000004",
+      "name": "Score with Groq",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 4000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert sales coach reviewing a recorded sales call for WeBuildTrades, a UK marketing agency for trade businesses.\\n\\nYour job is to evaluate the rep's performance against the sales playbook below and return a structured coaching scorecard.\\n\\nSales Playbook (active rubric):\\n{{ JSON.stringify($('Get Active Rubric').first().json[0].content, null, 2) }}\\n\\nScoring instructions:\\n- Score each criterion from 0 to 10 (0 = very poor, 10 = excellent)\\n- overall_score = weighted average across all scoring_criteria using their weight values\\n- For each strength and improvement, include an exact quoted phrase from the transcript as evidence\\n- Be specific and actionable in descriptions — tell the rep exactly what to do differently\\n- If the call is a team call (internal meeting), score leniently on sales criteria and note it is not a prospect call\\n\\nReturn ONLY valid JSON. No markdown, no explanation outside the JSON. Use this exact schema:\\n{\\n  \\\"overall_score\\\": <number 0-10, one decimal place>,\\n  \\\"summary\\\": \\\"<2-3 sentence coaching summary for the rep>\\\",\\n  \\\"strengths\\\": [\\n    {\\n      \\\"criterion\\\": \\\"<criterion key from scoring_criteria>\\\",\\n      \\\"score\\\": <0-10>,\\n      \\\"description\\\": \\\"<what the rep did well, 1-2 sentences>\\\",\\n      \\\"evidence_quote\\\": \\\"<exact quote from transcript>\\\",\\n      \\\"timestamp_seconds\\\": <integer or null>\\n    }\\n  ],\\n  \\\"improvements\\\": [\\n    {\\n      \\\"criterion\\\": \\\"<criterion key from scoring_criteria>\\\",\\n      \\\"score\\\": <0-10>,\\n      \\\"description\\\": \\\"<what to improve and exactly how, 1-2 sentences>\\\",\\n      \\\"evidence_quote\\\": \\\"<exact quote from transcript showing the issue>\\\",\\n      \\\"timestamp_seconds\\\": <integer or null>\\n    }\\n  ]\\n}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Please evaluate this sales call transcript:\\n\\n{{ $('Get Call').first().json[0].transcript_raw || 'No transcript available.' }}\"\n    }\n  ]\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000005",
+      "name": "Parse Scorecard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Webhook').first().json.call_id;\nconst rubric = $('Get Active Rubric').first().json[0];\n\nlet scorecard;\ntry {\n  scorecard = JSON.parse(responseText);\n} catch (e) {\n  throw new Error('Failed to parse LLM scorecard: ' + responseText.substring(0, 300));\n}\n\nif (typeof scorecard.overall_score !== 'number') scorecard.overall_score = 0;\nif (!Array.isArray(scorecard.strengths)) scorecard.strengths = [];\nif (!Array.isArray(scorecard.improvements)) scorecard.improvements = [];\nif (!scorecard.summary) scorecard.summary = '';\n\nconst allEvidence = [\n  ...scorecard.strengths.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null })),\n  ...scorecard.improvements.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null }))\n];\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric.id,\n  overall_score: Math.round(scorecard.overall_score * 10) / 10,\n  summary: scorecard.summary,\n  strengths: scorecard.strengths,\n  improvements: scorecard.improvements,\n  llm_model: 'llama-3.3-70b-versatile',\n  all_evidence: allEvidence\n} }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000006",
+      "name": "Insert Scorecard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1160, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={\n  \"call_id\": \"{{ $json.call_id }}\",\n  \"rubric_id\": \"{{ $json.rubric_id }}\",\n  \"overall_score\": {{ $json.overall_score }},\n  \"summary\": {{ JSON.stringify($json.summary) }},\n  \"strengths\": {{ JSON.stringify($json.strengths) }},\n  \"improvements\": {{ JSON.stringify($json.improvements) }},\n  \"llm_model\": \"{{ $json.llm_model }}\"\n}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000007",
+      "name": "Build Evidence Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const scorecardId = $('Insert Scorecard').first().json[0].id;\nconst allEvidence = $('Parse Scorecard').first().json.all_evidence || [];\nif (allEvidence.length === 0) return [{ json: { __skip_evidence: true } }];\nconst evidenceRows = allEvidence.map(e => ({ scorecard_id: scorecardId, criterion_key: e.criterion_key, quote: e.quote, timestamp_seconds: e.timestamp_seconds }));\nreturn [{ json: { evidence: evidenceRows } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000008",
+      "name": "Has Evidence?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1580, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-evidence-01", "leftValue": "={{ $json.__skip_evidence }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000009",
+      "name": "Insert Evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecard_evidence",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.evidence) }}" },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000010",
+      "name": "Update Call Scored",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $('Webhook').first().json.call_id }}" }] },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={ \"status\": \"scored\" }" },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000011",
+      "name": "Trigger Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2200, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_BASE_URL }}/webhook/call-notify",
+        "sendHeaders": true,
+        "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={ \"call_id\": \"{{ $('Webhook').first().json.call_id }}\" }" },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000012",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2400, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"overall_score\": {{ $('Parse Scorecard').first().json.overall_score }} }",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Get Call", "type": "main", "index": 0 }, { "node": "Get Active Rubric", "type": "main", "index": 0 }]] },
+    "Get Call": { "main": [[{ "node": "Score with Groq", "type": "main", "index": 0 }]] },
+    "Get Active Rubric": { "main": [[{ "node": "Score with Groq", "type": "main", "index": 0 }]] },
+    "Score with Groq": { "main": [[{ "node": "Parse Scorecard", "type": "main", "index": 0 }]] },
+    "Parse Scorecard": { "main": [[{ "node": "Insert Scorecard", "type": "main", "index": 0 }]] },
+    "Insert Scorecard": { "main": [[{ "node": "Build Evidence Array", "type": "main", "index": 0 }]] },
+    "Build Evidence Array": { "main": [[{ "node": "Has Evidence?", "type": "main", "index": 0 }]] },
+    "Has Evidence?": {
+      "main": [
+        [{ "node": "Insert Evidence", "type": "main", "index": 0 }],
+        [{ "node": "Update Call Scored", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
+    "Update Call Scored": { "main": [[{ "node": "Trigger Notify", "type": "main", "index": 0 }]] },
+    "Trigger Notify": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567804"
+}

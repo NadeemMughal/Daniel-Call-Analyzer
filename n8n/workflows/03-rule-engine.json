@@ -1,0 +1,167 @@
+{
+  "name": "03 - Rule Engine",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-rule-engine",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000002",
+      "name": "Get Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "=eq.{{ $json.call_id }}" },
+            { "name": "select", "value": "*" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "Get Active Rubric",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 480],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rubrics",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select", "value": "*" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000004",
+      "name": "Run Rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 380],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const call = $('Get Call').first().json[0];\nconst rubricRow = $('Get Active Rubric').first().json[0];\n\nif (!call) throw new Error('Call not found');\nif (!rubricRow) throw new Error('No active rubric found');\n\nconst rules = rubricRow.content;\nconst callId = call.id;\nconst callType = call.call_type || 'other';\nconst findings = [];\n\nconst segments = Array.isArray(call.transcript_segments) ? call.transcript_segments : [];\n\nlet repLabel = 'host';\nif (segments.length > 0) {\n  const speakers = [...new Set(segments.map(s => s.speaker).filter(Boolean))];\n  if (!speakers.includes('host') && speakers.length > 0) repLabel = speakers[0];\n}\n\nconst repSegments = segments.filter(s => s.speaker === repLabel);\nconst repText = repSegments.map(s => s.text || s.content || '').join(' ');\n\n// Rule 1: Banned words\nfor (const banned of (rules.banned_words || [])) {\n  const appliesTo = banned.applies_to_call_types || [];\n  if (appliesTo.length > 0 && !appliesTo.includes(callType)) continue;\n  const word = banned.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  if (matches.length > 0) {\n    const contextSnippets = repSegments\n      .filter(s => (s.text || s.content || '').toLowerCase().includes(word))\n      .slice(0, 5)\n      .map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Do not use the word \"${banned.word}\" on ${appliesTo.join(' or ')} calls. ` +\n      (banned.reason || `It removes your authority and expert positioning with the prospect.`) +\n      ` You said it ${matches.length} time${matches.length > 1 ? 's' : ''} on this call.`;\n    findings.push({\n      call_id: callId,\n      rule_key: 'banned_word_' + word,\n      value: { word, count: matches.length, suggestion },\n      severity: banned.severity || 'critical',\n      context_snippets: contextSnippets\n    });\n  }\n}\n\n// Rule 2: Filler words\nfor (const filler of (rules.filler_words || [])) {\n  const word = filler.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  const count = matches.length;\n  const threshold = filler.threshold_per_call || 5;\n  if (count > threshold) {\n    const contextSnippets = repSegments\n      .filter(s => (s.text || s.content || '').toLowerCase().includes(word))\n      .slice(0, 3)\n      .map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Reduce use of the filler word \"${word}\". ` +\n      `You said it ${count} times this call (target: under ${threshold}). ` +\n      `Replace it with a deliberate pause — silence sounds more confident than filler.`;\n    findings.push({\n      call_id: callId,\n      rule_key: 'filler_word_' + word,\n      value: { word, count, threshold, suggestion },\n      severity: filler.severity || 'warning',\n      context_snippets: contextSnippets\n    });\n  }\n}\n\n// Rule 3: Talk ratio\nconst totalSeconds = call.duration_seconds || 0;\nif (rules.talk_ratio && totalSeconds > 0 && segments.length > 0) {\n  const repSeconds = repSegments.reduce((sum, s) => {\n    const duration = (s.end_time || 0) - (s.start_time || 0);\n    return sum + (duration > 0 ? duration : 0);\n  }, 0);\n  const repPercentage = Math.round((repSeconds / totalSeconds) * 100);\n  const maxPercentage = rules.talk_ratio.max_rep_percentage || 60;\n  if (repPercentage > maxPercentage) {\n    const suggestion = `You spoke for ${repPercentage}% of this call — the target is under ${maxPercentage}%. ` +\n      `Ask a question, then stop talking. Let the prospect answer fully before you respond. ` +\n      `The more they talk, the more pain they reveal, and the easier it is to prescribe your solution.`;\n    findings.push({\n      call_id: callId,\n      rule_key: 'talk_ratio',\n      value: { rep_percentage: repPercentage, max_allowed: maxPercentage, rep_seconds: Math.round(repSeconds), total_seconds: totalSeconds, suggestion },\n      severity: rules.talk_ratio.severity || 'warning',\n      context_snippets: []\n    });\n  }\n}\n\nif (findings.length === 0) return [{ json: { __no_findings: true, call_id: callId } }];\nreturn findings.map(f => ({ json: f }));"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000005",
+      "name": "Has Findings?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 380],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-findings-01",
+              "leftValue": "={{ $json.__no_findings }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000006",
+      "name": "Build Findings Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 260],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const findings = $input.all().map(item => ({\n  call_id: item.json.call_id,\n  rule_key: item.json.rule_key,\n  value: item.json.value,\n  severity: item.json.severity,\n  context_snippets: item.json.context_snippets || []\n}));\nreturn [{ json: { findings } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000007",
+      "name": "Insert Rule Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 260],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rule_findings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.findings) }}" },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000008",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1500, 380],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Get Call", "type": "main", "index": 0 }, { "node": "Get Active Rubric", "type": "main", "index": 0 }]] },
+    "Get Call": { "main": [[{ "node": "Run Rules", "type": "main", "index": 0 }]] },
+    "Get Active Rubric": { "main": [[{ "node": "Run Rules", "type": "main", "index": 0 }]] },
+    "Run Rules": { "main": [[{ "node": "Has Findings?", "type": "main", "index": 0 }]] },
+    "Has Findings?": {
+      "main": [
+        [{ "node": "Build Findings Array", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Findings Array": { "main": [[{ "node": "Insert Rule Findings", "type": "main", "index": 0 }]] },
+    "Insert Rule Findings": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567803"
+}
