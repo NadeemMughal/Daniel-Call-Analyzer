@@ -4,7 +4,8 @@
 
 -- Enable extensions
 create extension if not exists "uuid-ossp";
-create extension if not exists "pgvector";
+-- pgvector is not required for V1 (no vector columns yet). If you ever need it,
+-- enable via Supabase Dashboard -> Database -> Extensions -> "vector".
 
 -- =============================================================
 -- Enums

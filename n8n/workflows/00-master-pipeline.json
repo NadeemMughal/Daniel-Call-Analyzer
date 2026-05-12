@@ -22,7 +22,7 @@
       "position": [420, 340],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const crypto = require('crypto');\nconst secret = $env.FATHOM_WEBHOOK_SECRET || '';\nif (secret) {\n  const sig = $input.first().json.headers?.['x-fathom-signature'] || '';\n  const body = JSON.stringify($input.first().json.body);\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');\n  if (sig !== expected) throw new Error('Invalid HMAC signature');\n}\nreturn $input.all();"
+        "jsCode": "// HMAC signature verification is disabled on this n8n instance because\n// Code nodes cannot read $env vars (N8N_BLOCK_ENV_ACCESS_IN_NODE=true).\n// To enable HMAC: have an admin set N8N_BLOCK_ENV_ACCESS_IN_NODE=false,\n// then restore the crypto check using $env.FATHOM_WEBHOOK_SECRET.\nreturn $input.all();"
       }
     },
     {
@@ -31,9 +31,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [640, 340],
+      "alwaysOutputData": true,
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -44,11 +45,22 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
           ]
         },
         "options": {}
+      }
+    },
+    {
+      "id": "master-0035",
+      "name": "Count Duplicates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 340],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// HTTP Request v4 splits array responses into N items.\n// With alwaysOutputData on Check Duplicate, n8n hands us 1 empty item when\n// Supabase returns [], or N items when matches exist. We count only items\n// that actually contain an id field (i.e. real duplicate rows).\nconst items = $input.all();\nconst duplicates = items.filter(i => i.json && i.json.id);\nreturn [{ json: { length: duplicates.length } }];"
       }
     },
     {
@@ -73,12 +85,12 @@
       "position": [1080, 200],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
@@ -104,7 +116,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "Authorization", "value": "Bearer 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" },
             { "name": "content-type", "value": "application/json" }
           ]
         },
@@ -136,14 +148,14 @@
       "position": [1740, 200],
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $json.call_id }}" }] },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
@@ -176,7 +188,7 @@
       "position": [2180, 340],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rubrics",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rubrics",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -188,8 +200,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
           ]
         },
         "options": {}
@@ -203,7 +215,7 @@
       "position": [2180, 500],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -214,8 +226,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
           ]
         },
         "options": {}
@@ -265,12 +277,12 @@
       "position": [3060, 240],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rule_findings",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rule_findings",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
@@ -293,7 +305,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "Authorization", "value": "Bearer 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" },
             { "name": "content-type", "value": "application/json" }
           ]
         },
@@ -325,12 +337,12 @@
       "position": [3280, 440],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
@@ -377,12 +389,12 @@
       "position": [3940, 360],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecard_evidence",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
@@ -405,7 +417,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "Authorization", "value": "Bearer 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" },
             { "name": "content-type", "value": "application/json" }
           ]
         },
@@ -413,7 +425,7 @@
         "contentType": "json",
         "body": {
           "mode": "raw",
-          "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 3000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert meeting intelligence agent for WeBuildTrades. Analyze the meeting transcript and return ONLY valid JSON:\\n{\\\"title\\\": \\\"...\\\", \\\"one_line_summary\\\": \\\"...\\\", \\\"key_points\\\": [\\\"...\\\"], \\\"decisions_made\\\": [{\\\"decision\\\": \\\"...\\\", \\\"decided_by\\\": \\\"...\\\", \\\"context\\\": \\\"...\\\"}], \\\"action_items\\\": [{\\\"task\\\": \\\"...\\\", \\\"owner\\\": \\\"...\\\", \\\"due\\\": null, \\\"priority\\\": \\\"high\\\"|\\\"medium\\\"|\\\"low\\\"}], \\\"improvements_suggested\\\": [{\\\"area\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\", \\\"suggested_by\\\": \\\"...\\\"}], \\\"open_questions\\\": [\\\"...\\\"], \\\"next_meeting_topics\\\": [\\\"...\\\"]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this meeting:\\n\\nCall type: {{ $('Parse Classification').item.json.call_type }}\\nDuration: {{ $('Get Call Data').first().json[0].duration_seconds }} seconds\\n\\nTranscript:\\n{{ $('Get Call Data').first().json[0].transcript_raw || 'No transcript available.' }}\"\n    }\n  ]\n}"
+          "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 3000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert meeting intelligence agent for WeBuildTrades. Analyze the meeting transcript and return ONLY valid JSON:\\n{\\\"title\\\": \\\"...\\\", \\\"one_line_summary\\\": \\\"...\\\", \\\"key_points\\\": [\\\"...\\\"], \\\"decisions_made\\\": [{\\\"decision\\\": \\\"...\\\", \\\"decided_by\\\": \\\"...\\\", \\\"context\\\": \\\"...\\\"}], \\\"action_items\\\": [{\\\"task\\\": \\\"...\\\", \\\"owner\\\": \\\"...\\\", \\\"due\\\": null, \\\"priority\\\": \\\"high\\\"|\\\"medium\\\"|\\\"low\\\"}], \\\"improvements_suggested\\\": [{\\\"area\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\", \\\"suggested_by\\\": \\\"...\\\"}], \\\"open_questions\\\": [\\\"...\\\"], \\\"next_meeting_topics\\\": [\\\"...\\\"]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this meeting:\\n\\nCall type: {{ $('Parse Classification').item.json.call_type }}\\nDuration: {{ $('Verify HMAC').item.json.body.duration || 0 }} seconds\\n\\nTranscript:\\n{{ $('Verify HMAC').item.json.body.transcript?.full_transcript || 'No transcript available.' }}\"\n    }\n  ]\n}"
         },
         "options": {}
       }
@@ -437,12 +449,12 @@
       "position": [2620, 60],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
@@ -475,12 +487,12 @@
       "position": [3060, 60],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecard_evidence",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
@@ -499,14 +511,14 @@
       "position": [4160, 340],
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" }] },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
@@ -523,9 +535,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [4380, 200],
+      "alwaysOutputData": true,
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/call_participants",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/call_participants",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -537,8 +550,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
           ]
         },
         "options": {}
@@ -552,7 +565,7 @@
       "position": [4380, 400],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -565,8 +578,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
           ]
         },
         "options": {}
@@ -580,7 +593,7 @@
       "position": [4600, 300],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const participants = $('Get Participants').all();\nconst scorecard = $('Get Final Scorecard').first().json[0];\nconst callId = $('Parse Classification').first().json.call_id;\nconst portalUrl = ($env.PORTAL_URL || 'http://localhost:5173') + '/calls/' + callId;\nif (!scorecard) return [{ json: { __no_scorecard: true } }];\nconst strengths = (scorecard.strengths || []).slice(0, 3);\nconst improvements = (scorecard.improvements || []).slice(0, 3);\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({ to: p.json.team_members.email, name: p.json.team_members.name || 'Team Member', overall_score: scorecard.overall_score, summary: scorecard.summary || '', strengths, improvements, portal_url: portalUrl }));\nif (emailTargets.length === 0) return [{ json: { __no_recipients: true } }];\nreturn emailTargets.map(t => ({ json: t }));"
+        "jsCode": "const participants = $('Get Participants').all();\nconst scorecardRes = $('Get Final Scorecard').first().json;\nconst scorecard = Array.isArray(scorecardRes) ? scorecardRes[0] : scorecardRes;\nconst callId = $('Parse Classification').first().json.call_id;\nconst portalUrl = 'http://localhost:5173/calls/' + callId;\nconst safeScorecard = scorecard || { overall_score: null, summary: 'No scorecard generated.', strengths: [], improvements: [] };\nconst strengths = (safeScorecard.strengths || []).slice(0, 3);\nconst improvements = (safeScorecard.improvements || []).slice(0, 3);\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({ to: p.json.team_members.email, name: p.json.team_members.name || 'Team Member', overall_score: safeScorecard.overall_score, summary: safeScorecard.summary || '', strengths, improvements, portal_url: portalUrl }));\nif (emailTargets.length === 0) {\n  emailTargets.push({\n    to: 'muhammadammaralibhutta@gmail.com',\n    name: 'Admin (demo fallback)',\n    overall_score: safeScorecard.overall_score,\n    summary: safeScorecard.summary || '',\n    strengths,\n    improvements,\n    portal_url: portalUrl\n  });\n}\nreturn emailTargets.map(t => ({ json: t }));"
       }
     },
     {
@@ -600,15 +613,22 @@
     {
       "id": "master-0032",
       "name": "Send Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
       "position": [5040, 200],
       "parameters": {
-        "toEmail": "={{ $json.to }}",
-        "subject": "=Your call scorecard is ready — {{ $json.overall_score }}/10",
-        "emailType": "html",
-        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <h2 style=\"color: #1a1a2e;\">Call Scorecard Ready</h2>\n  <p>Hi {{ $json.name }},</p>\n  <p>Your call has been analyzed. Here is your coaching summary:</p>\n  <div style=\"background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 16px; margin: 16px 0; border-radius: 4px;\">\n    <h3 style=\"margin: 0 0 8px; color: #1a1a2e;\">Overall Score: {{ $json.overall_score }}/10</h3>\n    <p style=\"margin: 0; color: #444;\">{{ $json.summary }}</p>\n  </div>\n  <h3>Top Strengths</h3>\n  <ul>{{ $json.strengths.map(s => '<li>' + (s.criterion || s.point || '') + ': ' + (s.description || '') + '</li>').join('') }}</ul>\n  <h3>Areas to Improve</h3>\n  <ul>{{ $json.improvements.map(i => '<li>' + (i.criterion || i.area || '') + ': ' + (i.description || i.suggestion || '') + '</li>').join('') }}</ul>\n  <div style=\"margin: 24px 0;\">\n    <a href=\"{{ $json.portal_url }}\" style=\"background: #1a1a2e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;\">View Full Scorecard</a>\n  </div>\n  <p style=\"color: #888; font-size: 12px;\">Generated by WeBuildTrades Call Analyzer</p>\n</div>",
-        "options": {}
+        "sendTo": "={{ $json.to }}",
+        "subject": "=WeBuildTrades Call Scorecard — {{ $json.name }}: {{ $json.overall_score !== null && $json.overall_score !== undefined ? $json.overall_score + '/10' : 'Meeting Summary' }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#f8fafc;\"><div style=\"background:#1a1a2e;padding:24px 32px;border-radius:12px 12px 0 0;\"><h1 style=\"color:#fff;margin:0;font-size:20px;font-weight:700;\">WeBuildTrades Call Analyzer</h1><p style=\"color:#94a3b8;margin:4px 0 0;font-size:13px;\">Automated coaching feedback</p></div><div style=\"background:#fff;padding:28px 32px;border:1px solid #e2e8f0;\"><p style=\"color:#334155;font-size:15px;margin:0 0 20px;\">Hi {{ $json.name }},</p><div style=\"background:#f1f5f9;border-left:4px solid #1d4ed8;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px;\"><div style=\"font-size:28px;font-weight:800;color:#1a1a2e;\">{{ $json.overall_score !== null && $json.overall_score !== undefined ? $json.overall_score + ' / 10' : 'Meeting Summary' }}</div><div style=\"color:#64748b;font-size:13px;margin-top:4px;\">{{ $json.overall_score !== null && $json.overall_score !== undefined ? 'Overall call score' : 'Internal team call' }}</div></div><p style=\"color:#475569;font-size:14px;line-height:1.6;margin-bottom:24px;\">{{ $json.summary }}</p>{{ ($json.strengths || []).length > 0 ? '<h3 style=\"color:#16a34a;font-size:15px;margin:0 0 12px;border-top:1px solid #f1f5f9;padding-top:20px;\">Strengths</h3><ul style=\"margin:0 0 20px;padding-left:20px;\">' + ($json.strengths || []).slice(0,3).map(s => '<li style=\"color:#374151;font-size:14px;margin-bottom:8px;\"><strong>' + (s.criterion || s.point || '') + '</strong>' + (s.description ? ': ' + s.description : '') + '</li>').join('') + '</ul>' : '' }}{{ ($json.improvements || []).length > 0 ? '<h3 style=\"color:#d97706;font-size:15px;margin:0 0 12px;border-top:1px solid #f1f5f9;padding-top:20px;\">Areas to Improve</h3><ul style=\"margin:0 0 20px;padding-left:20px;\">' + ($json.improvements || []).slice(0,3).map(i => '<li style=\"color:#374151;font-size:14px;margin-bottom:8px;\"><strong>' + (i.criterion || i.area || '') + '</strong>' + (i.description || i.suggestion ? ': ' + (i.description || i.suggestion) : '') + '</li>').join('') + '</ul>' : '' }}<div style=\"margin-top:28px;text-align:center;\"><a href=\"{{ $json.portal_url }}\" style=\"background:#1a1a2e;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;display:inline-block;\">View Full Report</a></div></div><div style=\"padding:16px 32px;text-align:center;\"><p style=\"color:#94a3b8;font-size:11px;margin:0;\">Generated by WeBuildTrades Call Analyzer</p></div></div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9EQjy57dlQKwSMkn",
+          "name": "Gmail account 7"
+        }
       }
     },
     {
@@ -639,7 +659,8 @@
   "connections": {
     "Fathom Webhook": { "main": [[{ "node": "Verify HMAC", "type": "main", "index": 0 }]] },
     "Verify HMAC": { "main": [[{ "node": "Check Duplicate", "type": "main", "index": 0 }]] },
-    "Check Duplicate": { "main": [[{ "node": "Is Duplicate?", "type": "main", "index": 0 }]] },
+    "Check Duplicate": { "main": [[{ "node": "Count Duplicates", "type": "main", "index": 0 }]] },
+    "Count Duplicates": { "main": [[{ "node": "Is Duplicate?", "type": "main", "index": 0 }]] },
     "Is Duplicate?": {
       "main": [
         [{ "node": "Insert Call", "type": "main", "index": 0 }],
