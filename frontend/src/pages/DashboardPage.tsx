@@ -23,6 +23,7 @@ interface DashboardData {
   weekCalls: number
   avgScore: number | null
   byDept: Array<{ name: string; count: number; avg: number | null }>
+  byPhase: Array<{ phase: string; count: number }>
   topActions: Array<{ task: string; call_id: string; call_type: string | null }>
   recentCalls: Array<{
     id: string; call_type: string | null; status: string;
@@ -30,6 +31,28 @@ interface DashboardData {
     department_name: string | null; summary_first_line: string;
   }>
   failures24h: number
+}
+
+const PHASE_LABELS: Record<string, string> = {
+  discovery: 'Discovery',
+  onboarding: 'Onboarding',
+  kick_off: 'Kick-off',
+  ai_onboarding: 'AI Onboarding',
+  strategy_review: 'Strategy Review',
+  status_update: 'Status Update',
+  sales_pitch: 'Sales Pitch',
+  demo: 'Demo',
+  training: 'Training',
+  internal_sync: 'Internal Sync',
+  one_on_one: '1-on-1',
+  project_review: 'Project Review',
+  quarterly_review: 'Quarterly Review',
+  closing_call: 'Closing Call',
+  renewal: 'Renewal',
+  escalation: 'Escalation',
+  feedback_session: 'Feedback',
+  content_review: 'Content Review',
+  other: 'Other',
 }
 
 export default function DashboardPage() {
@@ -41,7 +64,7 @@ export default function DashboardPage() {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-      const [callsRes, scoresRes, weekRes, deptRes, actionRes, recentRes, failRes] = await Promise.all([
+      const [callsRes, scoresRes, weekRes, deptRes, actionRes, recentRes, failRes, phaseRes] = await Promise.all([
         supabase.from('calls').select('id', { count: 'exact', head: true }),
         supabase.from('scorecards').select('overall_score').not('overall_score', 'is', null),
         supabase.from('calls').select('id', { count: 'exact', head: true }).gte('recorded_at', sevenDaysAgo),
@@ -58,6 +81,10 @@ export default function DashboardPage() {
           .order('recorded_at', { ascending: false, nullsFirst: false })
           .limit(5),
         supabase.from('failed_executions').select('id', { count: 'exact', head: true }).gte('created_at', oneDayAgo),
+        supabase
+          .from('scorecard_evidence')
+          .select('quote')
+          .eq('criterion_key', 'meeting_phase'),
       ])
 
       const allScores = (scoresRes.data || []).map(d => d.overall_score as number).filter(Boolean)
@@ -91,12 +118,24 @@ export default function DashboardPage() {
         summary_first_line: (c.scorecards?.[0]?.summary || '').split('.')[0].slice(0, 80),
       }))
 
+      // Phase distribution
+      const phaseCounts: Record<string, number> = {}
+      for (const row of (phaseRes.data || []) as any[]) {
+        const p = String(row.quote || '').trim().toLowerCase()
+        if (!p) continue
+        phaseCounts[p] = (phaseCounts[p] || 0) + 1
+      }
+      const byPhase = Object.entries(phaseCounts)
+        .map(([phase, count]) => ({ phase, count }))
+        .sort((a, b) => b.count - a.count)
+
       setData({
         totalCalls: callsRes.count || 0,
         scoredCalls: allScores.length,
         weekCalls: weekRes.count || 0,
         avgScore: avg,
         byDept,
+        byPhase,
         topActions,
         recentCalls,
         failures24h: failRes.count || 0,
@@ -168,6 +207,29 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Meeting phase distribution */}
+      {data.byPhase.length > 0 && (
+        <div className="card p-5 mb-6">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5" /> Meeting phases — what your team spends time on
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {data.byPhase.map(p => (
+              <Link
+                key={p.phase}
+                to={`/calls`}
+                className="bg-[hsl(222,47%,5%)] border border-violet-500/30 rounded-md px-3 py-2.5 hover:border-violet-500/60 transition group"
+              >
+                <p className="text-[10px] uppercase tracking-wider text-violet-300 font-semibold truncate">
+                  {PHASE_LABELS[p.phase] || p.phase}
+                </p>
+                <p className="text-2xl font-bold text-white mt-1 font-mono group-hover:text-violet-200 transition">{p.count}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Top open actions */}
       <div className="card p-5 mb-6">

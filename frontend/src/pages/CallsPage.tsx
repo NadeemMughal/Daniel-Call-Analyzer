@@ -22,6 +22,28 @@ const STATUS_TINT: Record<string, string> = {
   failed: 'bg-red-500/10 text-red-400',
 }
 
+const PHASE_LABELS: Record<string, string> = {
+  discovery: 'Discovery',
+  onboarding: 'Onboarding',
+  kick_off: 'Kick-off',
+  ai_onboarding: 'AI Onboarding',
+  strategy_review: 'Strategy Review',
+  status_update: 'Status Update',
+  sales_pitch: 'Sales Pitch',
+  demo: 'Demo',
+  training: 'Training',
+  internal_sync: 'Internal Sync',
+  one_on_one: '1-on-1',
+  project_review: 'Project Review',
+  quarterly_review: 'Quarterly Review',
+  closing_call: 'Closing Call',
+  renewal: 'Renewal',
+  escalation: 'Escalation',
+  feedback_session: 'Feedback',
+  content_review: 'Content Review',
+  other: 'Other',
+}
+
 const CALL_TYPES: Array<{ value: CallType | ''; label: string }> = [
   { value: '', label: 'All types' },
   { value: 'discovery', label: 'Discovery' },
@@ -32,15 +54,18 @@ const CALL_TYPES: Array<{ value: CallType | ''; label: string }> = [
   { value: 'other', label: 'Other' },
 ]
 
+type CallWithPhase = Call & { meeting_phase?: string | null }
+
 export default function CallsPage() {
   const [params, setParams] = useSearchParams()
   const deptId = params.get('dept') || ''
   const [deptName, setDeptName] = useState<string>('')
-  const [calls, setCalls] = useState<Call[]>([])
+  const [calls, setCalls] = useState<CallWithPhase[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<CallType | ''>('')
   const [statusFilter, setStatusFilter] = useState<CallStatus | ''>('')
+  const [phaseFilter, setPhaseFilter] = useState<string>('')
 
   useEffect(() => {
     if (!deptId) { setDeptName(''); return }
@@ -55,26 +80,39 @@ export default function CallsPage() {
       .select(`id, call_type, status, recorded_at, duration_seconds, created_at, department_id,
         clients(id, name), departments(id, name),
         call_participants(id, role, is_external, team_members(id, name, email)),
-        scorecards(id, overall_score)`)
+        scorecards(id, overall_score, scorecard_evidence(criterion_key, quote))`)
       .order('recorded_at', { ascending: false })
       .limit(100)
     if (typeFilter) q = q.eq('call_type', typeFilter)
     if (statusFilter) q = q.eq('status', statusFilter)
     if (deptId) q = q.eq('department_id', deptId)
     const { data } = await q
-    if (data) setCalls(data as unknown as Call[])
+    if (data) {
+      // Extract meeting_phase from evidence rows onto each call for easy access
+      const enriched = (data as any[]).map(c => {
+        const ev = c.scorecards?.[0]?.scorecard_evidence ?? []
+        const phaseRow = ev.find((e: any) => e.criterion_key === 'meeting_phase')
+        return { ...c, meeting_phase: phaseRow?.quote?.trim()?.toLowerCase() ?? null }
+      })
+      setCalls(enriched as unknown as CallWithPhase[])
+    }
     setLoading(false)
   }, [typeFilter, statusFilter, deptId])
 
   useEffect(() => { fetchCalls() }, [fetchCalls])
 
   const filtered = calls.filter(c => {
+    if (phaseFilter && c.meeting_phase !== phaseFilter) return false
     if (!search) return true
     const q = search.toLowerCase()
     const name = c.clients?.name?.toLowerCase() ?? ''
     const reps = (c.call_participants ?? []).map(p => p.team_members?.name?.toLowerCase() ?? '').join(' ')
     return name.includes(q) || reps.includes(q)
   })
+
+  // Available phase options (only show what's actually in the dataset)
+  const phaseOptions = Array.from(new Set(calls.map(c => c.meeting_phase).filter(Boolean) as string[]))
+    .sort()
 
   const stats = {
     total: calls.length,
@@ -141,6 +179,17 @@ export default function CallsPage() {
           <option value="scored">Scored</option>
           <option value="failed">Failed</option>
         </select>
+        <select
+          value={phaseFilter}
+          onChange={e => setPhaseFilter(e.target.value)}
+          className="bg-[hsl(222,47%,5%)] border border-[hsl(222,32%,18%)] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500/50"
+          disabled={phaseOptions.length === 0}
+        >
+          <option value="">All phases</option>
+          {phaseOptions.map(p => (
+            <option key={p} value={p}>{PHASE_LABELS[p] || p}</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
@@ -169,11 +218,18 @@ export default function CallsPage() {
                   <tr key={call.id} className="border-b border-[hsl(222,32%,12%)] last:border-0 hover:bg-white/[0.02] transition group">
                     <td className="px-5 py-4"><ScoreRing score={score} size="sm" /></td>
                     <td className="px-5 py-4">
-                      {call.call_type && (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border mb-1 ${CALL_TYPE_TINT[call.call_type] || CALL_TYPE_TINT.other}`}>
-                          {call.call_type.replace(/_/g, ' ')}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                        {call.meeting_phase && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border bg-violet-500/10 text-violet-300 border-violet-500/30">
+                            {PHASE_LABELS[call.meeting_phase] || call.meeting_phase}
+                          </span>
+                        )}
+                        {call.call_type && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border ${CALL_TYPE_TINT[call.call_type] || CALL_TYPE_TINT.other}`}>
+                            {call.call_type.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-gray-300 font-medium text-[13px]">{call.clients?.name ?? '—'}</div>
                     </td>
                     <td className="px-5 py-4 text-gray-300">

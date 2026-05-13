@@ -29,6 +29,29 @@ const DEPT_TINT: Record<string, string> = {
   'Content & Marketing': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
 }
 
+// Human-readable label for meeting_phase
+const PHASE_LABELS: Record<string, string> = {
+  discovery: 'Discovery',
+  onboarding: 'Onboarding',
+  kick_off: 'Kick-off',
+  ai_onboarding: 'AI Onboarding',
+  strategy_review: 'Strategy Review',
+  status_update: 'Status Update',
+  sales_pitch: 'Sales Pitch',
+  demo: 'Product Demo',
+  training: 'Training',
+  internal_sync: 'Internal Sync',
+  one_on_one: '1-on-1',
+  project_review: 'Project Review',
+  quarterly_review: 'Quarterly Review',
+  closing_call: 'Closing Call',
+  renewal: 'Renewal',
+  escalation: 'Escalation',
+  feedback_session: 'Feedback Session',
+  content_review: 'Content Review',
+  other: 'Meeting',
+}
+
 // Extract a short meeting title from the scorecard summary (LLM puts it before the first period)
 function extractTitle(summary?: string | null): { title: string | null; rest: string } {
   if (!summary) return { title: null, rest: '' }
@@ -107,6 +130,8 @@ export default function CallDetailPage() {
   const projects = group('project')
   const attendees = group('attendee')
   const bannedPhrases = group('banned_phrase')
+  const meetingPhase = (group('meeting_phase')[0] || '').trim().toLowerCase()
+  const phaseLabel = meetingPhase ? (PHASE_LABELS[meetingPhase] || meetingPhase.replace(/_/g, ' ')) : null
 
   const criticalCount = findings.filter(f => f.severity === 'critical').length
   const warningCount = findings.filter(f => f.severity === 'warning').length
@@ -125,6 +150,11 @@ export default function CallDetailPage() {
         <div className="flex items-start justify-between gap-6 mb-6">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-3 flex-wrap">
+              {phaseLabel && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wider border bg-violet-500/10 text-violet-300 border-violet-500/30">
+                  {phaseLabel}
+                </span>
+              )}
               {call.call_type && (
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wider border ${CALL_TYPE_TINT[call.call_type] || CALL_TYPE_TINT.other}`}>
                   {call.call_type.replace(/_/g, ' ')}
