@@ -1,0 +1,240 @@
+{
+  "name": "07 - Weekly Trend Analysis",
+  "nodes": [
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000001",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 0 * * 0" }]
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000002",
+      "name": "Get All Reps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/team_members",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "role", "value": "eq.rep" },
+            { "name": "select", "value": "id,name,email" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000003",
+      "name": "Loop Over Members",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000004",
+      "name": "Get Member Call IDs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/call_participants",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "team_member_id", "value": "=eq.{{ $json.id }}" },
+            { "name": "is_external", "value": "eq.false" },
+            { "name": "select", "value": "call_id" },
+            { "name": "order", "value": "created_at.desc" },
+            { "name": "limit", "value": "20" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000005",
+      "name": "Build Call ID List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const callParticipants = $input.all();\nconst memberItem = $('Loop Over Members').first().json;\nconst callIds = [...new Set(callParticipants.map(p => p.json.call_id).filter(id => id))];\n\nif (callIds.length === 0) {\n  return [{ json: { member_id: memberItem.id, member_name: memberItem.name, has_calls: false, call_ids_csv: '' } }];\n}\n\nreturn [{ json: { member_id: memberItem.id, member_name: memberItem.name, has_calls: true, call_ids_csv: callIds.join(',') } }];"
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000006",
+      "name": "Has Calls?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond-hascalls-01", "leftValue": "={{ $json.has_calls }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000007",
+      "name": "Get Scorecards",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "call_id", "value": "=in.({{ $json.call_ids_csv }})" },
+            { "name": "select", "value": "id,overall_score,summary,created_at,calls(call_type,recorded_at)" },
+            { "name": "order", "value": "created_at.asc" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000008",
+      "name": "Build Trend Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const scorecardsData = $input.all().map(i => i.json);\nconst memberItem = $('Loop Over Members').first().json;\nconst now = new Date();\nconst periodEnd = now.toISOString().split('T')[0];\nconst periodStart = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];\n\nconst scorecards_array = scorecardsData.map(s => ({\n  call_date: s.calls ? s.calls.recorded_at : s.created_at,\n  call_type: s.calls ? s.calls.call_type : 'unknown',\n  overall_score: s.overall_score,\n  summary: s.summary\n}));\n\nconst avgScore = scorecards_array.length > 0\n  ? Math.round((scorecards_array.reduce((sum, s) => sum + (parseFloat(s.overall_score) || 0), 0) / scorecards_array.length) * 10) / 10\n  : 0;\n\nconst systemPrompt = 'You are a performance analytics coach for WeBuildTrades. You receive a batch of scored call analyses for a single team member over a time period and produce a trend report. Identify: (1) what they consistently do well - reinforce and celebrate; (2) what they consistently do poorly - flag as a pattern not a one-off; (3) whether scores are improving, declining, or plateauing week-over-week; (4) their single most impactful area to work on right now; (5) a specific 2-week improvement challenge. Write in a direct coaching tone. Be specific. Reference actual call dates when making claims. If fewer than 3 calls, set score_trend to INSUFFICIENT_DATA. Return ONLY valid JSON matching exactly: { \"member_id\": \"string\", \"member_name\": \"string\", \"period_start\": \"string\", \"period_end\": \"string\", \"calls_analyzed\": number, \"average_score\": number, \"score_trend\": \"IMPROVING|DECLINING|PLATEAUING|INSUFFICIENT_DATA\", \"score_trajectory\": [{\"call_date\":\"string\",\"call_type\":\"string\",\"score\":number}], \"consistent_strengths\": [{\"area\":\"string\",\"evidence\":\"string\",\"reinforcement_note\":\"string\"}], \"consistent_weaknesses\": [{\"area\":\"string\",\"frequency\":\"string\",\"evidence\":\"string\",\"impact\":\"string\"}], \"priority_focus_area\": {\"area\":\"string\",\"why_now\":\"string\",\"two_week_challenge\":\"string\"}, \"call_type_breakdown\": {\"DISCOVERY\":{\"count\":number,\"avg_score\":number},\"FOLLOW_UP\":{\"count\":number,\"avg_score\":number},\"ADS_INTRO\":{\"count\":number,\"avg_score\":number},\"LAUNCH\":{\"count\":number,\"avg_score\":number},\"TEAM\":{\"count\":number,\"avg_score\":number}}, \"manager_briefing\": \"string\" }';\n\nconst userPrompt = 'Analyse the following batch of call scorecards for ' + memberItem.name + ' covering the period ' + periodStart + ' to ' + periodEnd + '.\\n\\nCALL SCORECARDS (ordered oldest to newest):\\n' + JSON.stringify(scorecards_array, null, 2) + '\\n\\nIdentify genuine patterns. Do not manufacture trends from a single outlier. Return only the JSON object.';\n\nreturn [{\n  json: {\n    member_id: memberItem.id,\n    member_name: memberItem.name,\n    period_start: periodStart,\n    period_end: periodEnd,\n    calls_analyzed: scorecards_array.length,\n    average_score: avgScore,\n    groq_request_body: {\n      model: 'llama-3.3-70b-versatile',\n      max_tokens: 2048,\n      messages: [\n        { role: 'system', content: systemPrompt },\n        { role: 'user', content: userPrompt }\n      ]\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000009",
+      "name": "Call Groq",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={{ JSON.stringify($json.groq_request_body) }}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000010",
+      "name": "Parse Trend Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 200],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const groqResponse = $input.item.json;\nconst prevData = $('Build Trend Prompt').item.json;\nconst responseText = (groqResponse.choices?.[0]?.message?.content || '').trim();\nlet trendAnalysis;\ntry {\n  trendAnalysis = JSON.parse(responseText);\n} catch (e) {\n  trendAnalysis = { score_trend: 'INSUFFICIENT_DATA' };\n}\nreturn [{\n  json: {\n    member_id: prevData.member_id,\n    period_start: prevData.period_start,\n    period_end: prevData.period_end,\n    calls_analyzed: prevData.calls_analyzed,\n    average_score: trendAnalysis.average_score || prevData.average_score || null,\n    score_trend: trendAnalysis.score_trend || 'INSUFFICIENT_DATA',\n    analysis_json: trendAnalysis\n  }\n}];"
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000011",
+      "name": "Upsert member_trends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2440, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/member_trends",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "on_conflict", "value": "member_id,period_end" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={{ JSON.stringify({ member_id: $json.member_id, period_start: $json.period_start, period_end: $json.period_end, calls_analyzed: $json.calls_analyzed, average_score: $json.average_score, score_trend: $json.score_trend, analysis_json: $json.analysis_json }) }}"
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Weekly Schedule": { "main": [[{ "node": "Get All Reps", "type": "main", "index": 0 }]] },
+    "Get All Reps": { "main": [[{ "node": "Loop Over Members", "type": "main", "index": 0 }]] },
+    "Loop Over Members": {
+      "main": [
+        [{ "node": "Get Member Call IDs", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Member Call IDs": { "main": [[{ "node": "Build Call ID List", "type": "main", "index": 0 }]] },
+    "Build Call ID List": { "main": [[{ "node": "Has Calls?", "type": "main", "index": 0 }]] },
+    "Has Calls?": {
+      "main": [
+        [{ "node": "Get Scorecards", "type": "main", "index": 0 }],
+        [{ "node": "Loop Over Members", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Scorecards": { "main": [[{ "node": "Build Trend Prompt", "type": "main", "index": 0 }]] },
+    "Build Trend Prompt": { "main": [[{ "node": "Call Groq", "type": "main", "index": 0 }]] },
+    "Call Groq": { "main": [[{ "node": "Parse Trend Response", "type": "main", "index": 0 }]] },
+    "Parse Trend Response": { "main": [[{ "node": "Upsert member_trends", "type": "main", "index": 0 }]] },
+    "Upsert member_trends": { "main": [[{ "node": "Loop Over Members", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "b2c3d4e5-f6a7-8901-bcde-f12345678907"
+}

@@ -104,7 +104,7 @@
       "position": [700, 300],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const participants = $('Get Participants').all();\nconst scorecard = $('Get Scorecard').first().json[0];\nconst ruleFindings = $('Get Rule Findings').all().map(i => i.json);\nconst callId = $('Webhook').first().json.call_id;\nconst portalUrl = ($env.PORTAL_URL || 'http://localhost:5173') + '/calls/' + callId;\n\nif (!scorecard) return [{ json: { __no_scorecard: true } }];\n\nconst strengths = (scorecard.strengths || []).slice(0, 3);\nconst improvements = (scorecard.improvements || []).slice(0, 3);\n\nconst coachingPoints = ruleFindings\n  .filter(f => f.value && f.value.suggestion)\n  .map(f => ({ severity: f.severity, suggestion: f.value.suggestion, rule_key: f.rule_key }));\n\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({\n    to: p.json.team_members.email,\n    name: p.json.team_members.name || 'Team Member',\n    overall_score: scorecard.overall_score,\n    summary: scorecard.summary || '',\n    strengths,\n    improvements,\n    coaching_points: coachingPoints,\n    portal_url: portalUrl\n  }));\n\nif (emailTargets.length === 0) return [{ json: { __no_recipients: true } }];\nreturn emailTargets.map(t => ({ json: t }));"
+        "jsCode": "const participants = $('Get Participants').all();\nconst scorecard = $('Get Scorecard').first().json[0];\nconst ruleFindings = $('Get Rule Findings').all().map(i => i.json);\nconst callId = $('Webhook').first().json.call_id;\nconst portalUrl = ($env.PORTAL_URL || 'http://localhost:5173') + '/calls/' + callId;\n\nif (!scorecard) return [{ json: { __no_scorecard: true } }];\n\nconst score = parseFloat(scorecard.overall_score) || 0;\nconst scoreTier = score >= 8.5 ? 'EXCELLENT' : score >= 7 ? 'GOOD' : score >= 5 ? 'NEEDS_WORK' : 'POOR';\n\nconst compact_analysis = {\n  call_id: callId,\n  overall_score: score,\n  score_tier: scoreTier,\n  executive_summary: scorecard.summary || '',\n  strengths: (scorecard.strengths || []).slice(0, 3),\n  improvements: (scorecard.improvements || []).slice(0, 3),\n  language_flags: ruleFindings\n    .filter(f => f.severity === 'critical' || f.severity === 'warning')\n    .slice(0, 5)\n    .map(f => ({ rule: f.rule_key, value: f.value, severity: f.severity })),\n  coaching_priorities: ruleFindings\n    .filter(f => f.value && f.value.suggestion)\n    .slice(0, 3)\n    .map((f, i) => ({ priority: i + 1, area: f.rule_key, detail: f.value.suggestion }))\n};\n\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({\n    to: p.json.team_members.email,\n    recipient_name: p.json.team_members.name || 'Team Member',\n    compact_analysis_json: JSON.stringify(compact_analysis),\n    portal_url: portalUrl\n  }));\n\nif (emailTargets.length === 0) return [{ json: { __no_recipients: true } }];\nreturn emailTargets.map(t => ({ json: t }));"
       }
     },
     {
@@ -122,16 +122,63 @@
       }
     },
     {
+      "id": "a1b2c3d4-0005-0005-0005-000000000008",
+      "name": "Build Groq Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 200],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nconst systemPrompt = 'You are an email formatter for WeBuildTrades. You receive a structured call analysis JSON and produce a professional HTML email for the management team. Rules: (1) inline CSS only - palette #1A1A2E headers, #E94560 warnings/red-flags, #0F9B8E wins/positives, #F5F5F5 section backgrounds, #FFFFFF body; (2) font Arial Helvetica sans-serif; (3) max-width 600px mobile-friendly; (4) score tier badge must be prominent - use large font and colour-coded background; (5) max 3 coaching priorities in email. Sections in order: [1] WeBuildTrades header with call date [2] Score badge (EXCELLENT/GOOD/NEEDS_WORK/POOR) plus numeric score [3] Executive summary 2-3 sentences [4] Key Wins - up to 3 bullets from strengths [5] Red Flags - up to 3 bullets from improvements [6] Top 3 Coaching Priorities with detail [7] Language Report showing banned words and tone [8] View Full Scorecard button linking to portal URL [9] Footer with unsubscribe note. Output ONLY the complete HTML email string. No JSON. No markdown. No preamble.';\nconst userPrompt = 'Convert the following call analysis JSON into a professional HTML email. Apply all design rules exactly.\\n\\nCALL ANALYSIS JSON:\\n' + item.compact_analysis_json + '\\n\\nPORTAL URL FOR THIS CALL: ' + item.portal_url + '\\nRECIPIENT NAME: ' + item.recipient_name + '\\n\\nReturn only the HTML string.';\nreturn [{\n  json: {\n    to: item.to,\n    recipient_name: item.recipient_name,\n    compact_analysis_json: item.compact_analysis_json,\n    groq_request_body: {\n      model: 'llama-3.3-70b-versatile',\n      max_tokens: 2048,\n      messages: [\n        { role: 'system', content: systemPrompt },\n        { role: 'user', content: userPrompt }\n      ]\n    }\n  }\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000009",
+      "name": "Format Email with Groq",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1360, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={{ JSON.stringify($json.groq_request_body) }}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000010",
+      "name": "Extract HTML Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1580, 200],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const groqResponse = $input.item.json;\nconst prevData = $('Build Groq Request').item.json;\nconst html = groqResponse.choices && groqResponse.choices[0] && groqResponse.choices[0].message\n  ? groqResponse.choices[0].message.content\n  : '<p>Scorecard ready. View in portal.</p>';\nconst analysis = JSON.parse(prevData.compact_analysis_json || '{}');\nreturn [{\n  json: {\n    to: prevData.to,\n    overall_score: analysis.overall_score || '',\n    html_body: html\n  }\n}];"
+      }
+    },
+    {
       "id": "a1b2c3d4-0005-0005-0005-000000000006",
       "name": "Send Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
-      "position": [1120, 200],
+      "position": [1800, 200],
       "parameters": {
         "toEmail": "={{ $json.to }}",
-        "subject": "=Your call scorecard is ready — {{ $json.overall_score }}/10",
+        "subject": "=Your call scorecard is ready — {{ $json.overall_score }}/10 | WeBuildTrades",
         "emailType": "html",
-        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <h2 style=\"color: #1a1a2e;\">Call Scorecard Ready</h2>\n  <p>Hi {{ $json.name }},</p>\n  <p>Your call has been analyzed. Here is your coaching summary:</p>\n\n  <div style=\"background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 16px; margin: 16px 0; border-radius: 4px;\">\n    <h3 style=\"margin: 0 0 8px; color: #1a1a2e;\">Overall Score: {{ $json.overall_score }}/10</h3>\n    <p style=\"margin: 0; color: #444;\">{{ $json.summary }}</p>\n  </div>\n\n  {{ $json.coaching_points && $json.coaching_points.length > 0 ? '<h3 style=\"color: #c0392b;\">Coaching Points</h3><ul>' + $json.coaching_points.map(p => '<li>' + p.suggestion + '</li>').join('') + '</ul>' : '' }}\n\n  <h3 style=\"color: #1a1a2e;\">Top Strengths</h3>\n  <ul>{{ $json.strengths.map(s => '<li><strong>' + s.criterion + ':</strong> ' + s.description + '</li>').join('') }}</ul>\n\n  <h3 style=\"color: #1a1a2e;\">Areas to Improve</h3>\n  <ul>{{ $json.improvements.map(i => '<li><strong>' + i.criterion + ':</strong> ' + i.description + '</li>').join('') }}</ul>\n\n  <div style=\"margin: 24px 0;\">\n    <a href=\"{{ $json.portal_url }}\" style=\"background: #1a1a2e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;\">View Full Scorecard</a>\n  </div>\n\n  <p style=\"color: #888; font-size: 12px;\">This feedback was generated automatically by the WeBuildTrades Call Analyzer.</p>\n</div>",
+        "message": "={{ $json.html_body }}",
         "options": {}
       }
     },
@@ -140,7 +187,7 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1340, 300],
+      "position": [1800, 400],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"ok\": true }",
@@ -149,20 +196,29 @@
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Get Participants", "type": "main", "index": 0 }, { "node": "Get Rule Findings", "type": "main", "index": 0 }, { "node": "Get Scorecard", "type": "main", "index": 0 }]] },
+    "Webhook": {
+      "main": [[
+        { "node": "Get Participants", "type": "main", "index": 0 },
+        { "node": "Get Rule Findings", "type": "main", "index": 0 },
+        { "node": "Get Scorecard", "type": "main", "index": 0 }
+      ]]
+    },
     "Get Participants": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
     "Get Rule Findings": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
     "Get Scorecard": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
     "Build Email List": { "main": [[{ "node": "Has Recipients?", "type": "main", "index": 0 }]] },
     "Has Recipients?": {
       "main": [
-        [{ "node": "Send Email", "type": "main", "index": 0 }],
+        [{ "node": "Build Groq Request", "type": "main", "index": 0 }],
         [{ "node": "Respond 200", "type": "main", "index": 0 }]
       ]
     },
+    "Build Groq Request": { "main": [[{ "node": "Format Email with Groq", "type": "main", "index": 0 }]] },
+    "Format Email with Groq": { "main": [[{ "node": "Extract HTML Body", "type": "main", "index": 0 }]] },
+    "Extract HTML Body": { "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]] },
     "Send Email": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
   },
   "active": false,
   "settings": { "executionOrder": "v1" },
-  "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567805"
+  "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567895"
 }

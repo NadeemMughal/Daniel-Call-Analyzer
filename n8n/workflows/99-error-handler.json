@@ -1,0 +1,55 @@
+{
+  "name": "99 - Error Handler",
+  "nodes": [
+    {
+      "id": "err-0001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {}
+    },
+    {
+      "id": "err-0002",
+      "name": "Build Failure Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst e = (items && items[0] && items[0].json) || {};\nconst exec = e.execution || {};\nconst err = e.execution && e.execution.error ? e.execution.error : (e.error || {});\nconst lastNode = (err && err.node && err.node.name) || (exec.lastNodeExecuted) || null;\n\nfunction safeExcerpt(obj) {\n  try {\n    const s = JSON.stringify(obj);\n    return s && s.length > 2000 ? s.substring(0, 2000) + '...' : s;\n  } catch (_) { return null; }\n}\n\nreturn [{ json: {\n  workflow_id: (e.workflow && e.workflow.id) || null,\n  workflow_name: (e.workflow && e.workflow.name) || null,\n  execution_id: exec.id || null,\n  node_name: lastNode,\n  error_message: (err && (err.message || err.description)) || 'Unknown error',\n  error_stack: (err && (err.stack || err.cause && JSON.stringify(err.cause))) || null,\n  payload_excerpt: safeExcerpt(err) ? JSON.parse(safeExcerpt(err)) : null\n} }];"
+      }
+    },
+    {
+      "id": "err-0003",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/failed_executions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": { "main": [[{ "node": "Build Failure Row", "type": "main", "index": 0 }]] },
+    "Build Failure Row": { "main": [[{ "node": "Log to Supabase", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -4,22 +4,65 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 222 47% 11%;
-    --radius: 0.5rem;
+    --background: 222 47% 5%;
+    --foreground: 210 40% 98%;
+    --surface: 222 47% 8%;
+    --surface-elevated: 222 47% 11%;
+    --border: 222 32% 18%;
+    --border-strong: 222 32% 24%;
+    --muted: 220 14% 60%;
+    --accent: 217 91% 60%;
+    --emerald: 158 64% 52%;
+    --amber: 38 92% 50%;
+    --rose: 0 84% 60%;
   }
 
-  * {
-    @apply border-border;
-  }
+  * { border-color: hsl(var(--border)); }
 
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Subtle grid background on app shell */
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted)); }
+}
+
+@layer components {
+  .card {
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+  }
+  .card-elev {
+    background: hsl(var(--surface-elevated));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
   }
 }
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.4s ease-out both; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }

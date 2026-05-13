@@ -6,7 +6,10 @@
       "name": "Fathom Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 340],
+      "position": [
+        200,
+        340
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "fathom-master",
@@ -19,7 +22,10 @@
       "name": "Verify HMAC",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 340],
+      "position": [
+        420,
+        340
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "// HMAC signature verification is disabled on this n8n instance because\n// Code nodes cannot read $env vars (N8N_BLOCK_ENV_ACCESS_IN_NODE=true).\n// To enable HMAC: have an admin set N8N_BLOCK_ENV_ACCESS_IN_NODE=false,\n// then restore the crypto check using $env.FATHOM_WEBHOOK_SECRET.\nreturn $input.all();"
@@ -30,7 +36,10 @@
       "name": "Check Duplicate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [640, 340],
+      "position": [
+        640,
+        340
+      ],
       "alwaysOutputData": true,
       "parameters": {
         "method": "GET",
@@ -38,15 +47,27 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "source_id", "value": "=eq.{{ $json.body.id }}" },
-            { "name": "select", "value": "id" }
+            {
+              "name": "source_id",
+              "value": "=eq.{{ $json.body.id }}"
+            },
+            {
+              "name": "select",
+              "value": "id"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            }
           ]
         },
         "options": {}
@@ -57,7 +78,10 @@
       "name": "Count Duplicates",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [750, 340],
+      "position": [
+        750,
+        340
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "// HTTP Request v4 splits array responses into N items.\n// With alwaysOutputData on Check Duplicate, n8n hands us 1 empty item when\n// Supabase returns [], or N items when matches exist. We count only items\n// that actually contain an id field (i.e. real duplicate rows).\nconst items = $input.all();\nconst duplicates = items.filter(i => i.json && i.json.id);\nreturn [{ json: { length: duplicates.length } }];"
@@ -68,11 +92,28 @@
       "name": "Is Duplicate?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [860, 340],
+      "position": [
+        860,
+        340
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-dup", "leftValue": "={{ $json.length }}", "rightValue": 0, "operator": { "type": "number", "operation": "equals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-dup",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
           "combinator": "and"
         }
       }
@@ -82,26 +123,38 @@
       "name": "Insert Call",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1080, 200],
+      "position": [
+        1080,
+        200
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"source\": \"fathom\",\n  \"source_id\": \"{{ $('Verify HMAC').item.json.body.id }}\",\n  \"status\": \"pending\",\n  \"transcript_raw\": {{ JSON.stringify($('Verify HMAC').item.json.body.transcript?.full_transcript || '') }},\n  \"transcript_segments\": {{ JSON.stringify($('Verify HMAC').item.json.body.transcript?.segments || []) }},\n  \"audio_url\": {{ JSON.stringify($('Verify HMAC').item.json.body.recording_url || null) }},\n  \"recorded_at\": {{ JSON.stringify($('Verify HMAC').item.json.body.start_time || null) }},\n  \"duration_seconds\": {{ $('Verify HMAC').item.json.body.duration || 0 }}\n}"
-        },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ source: 'fathom', source_id: String($('Verify HMAC').first().json.body.id), status: 'pending', transcript_raw: ($('Verify HMAC').first().json.body.transcript || {}).full_transcript || '', transcript_segments: ($('Verify HMAC').first().json.body.transcript || {}).segments || [], audio_url: $('Verify HMAC').first().json.body.recording_url || null, recorded_at: $('Verify HMAC').first().json.body.start_time || null, duration_seconds: $('Verify HMAC').first().json.body.duration || 0 }) }}"
       }
     },
     {
@@ -109,35 +162,49 @@
       "name": "Classify with Groq",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1300, 200],
+      "position": [
+        1300,
+        200
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer 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" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"max_tokens\": 300,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a call classifier for WeBuildTrades. Call types: discovery, ads_intro, launch, follow_up, team, other. Respond with valid JSON only: {\\\"call_type\\\": \\\"...\\\", \\\"confidence\\\": 0.0-1.0, \\\"reasoning\\\": \\\"one sentence\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Classify this call (first 2000 chars):\\n\\n{{ ($('Verify HMAC').item.json.body.transcript?.full_transcript || '').substring(0, 2000) }}\"\n    }\n  ]\n}"
+        "options": {
+          "timeout": 120000
         },
-        "options": {}
-      }
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'llama-3.1-8b-instant', max_tokens: 300, messages: [ { role: 'system', content: 'You classify business calls. Types: discovery (first meeting with a prospective new client), ads_intro (introducing advertising services to a prospect or warm lead), launch (onboarding/kickoff with a new client), follow_up (check-in with an existing client about ongoing work), team (INTERNAL meeting between WeBuildTrades staff only, no external clients), other. CRITICAL: if EVERY attendee email ends with @webuildtrades.com, the call is ALWAYS team. If ANY attendee email is from outside @webuildtrades.com, it is a client or prospect call. Return JSON only: {\\\"call_type\\\":\\\"...\\\",\\\"confidence\\\":0.9,\\\"reasoning\\\":\\\"one sentence citing attendee emails or transcript content\\\"}' }, { role: 'user', content: 'Attendees: ' + JSON.stringify((($('Verify HMAC').first().json.body.attendees) || []).map(function(a){return {name:a.name,email:a.email};})) + '\\nTranscript excerpt:\\n' + (($('Verify HMAC').first().json.body.transcript || {}).full_transcript || '').substring(0, 2000) } ] }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "master-0007",
       "name": "Parse Classification",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1520, 200],
+      "position": [
+        1520,
+        200
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Insert Call').first().json[0].id;\nconst validTypes = ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'];\nlet classification;\ntry { classification = JSON.parse(responseText); } catch (e) { classification = { call_type: 'other', confidence: 0, reasoning: 'parse error' }; }\nif (!validTypes.includes(classification.call_type)) classification.call_type = 'other';\nreturn [{ json: { ...classification, call_id: callId } }];"
+        "jsCode": "const inputs = $input.all();\nconst firstJson = (inputs && inputs[0] && inputs[0].json) || {};\nconst choices = firstJson.choices;\nlet responseText = String((choices && choices[0] && choices[0].message && choices[0].message.content) || '');\nconst fence = String.fromCharCode(96, 96, 96);\nif (responseText.indexOf(fence) === 0) {\n  responseText = responseText.substring(3);\n  if (responseText.indexOf('json') === 0) responseText = responseText.substring(4);\n  responseText = responseText.trim();\n  if (responseText.endsWith(fence)) responseText = responseText.substring(0, responseText.length - 3);\n}\nconst fb = responseText.indexOf('{');\nif (fb > 0) responseText = responseText.substring(fb);\nconst lb = responseText.lastIndexOf('}');\nif (lb > -1 && lb < responseText.length - 1) responseText = responseText.substring(0, lb + 1);\nresponseText = responseText.trim();\n\nconst callId = $('Insert Call').first().json.id;\nconst validTypes = ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'];\nlet c;\ntry { c = JSON.parse(responseText); }\ncatch (e) { c = { call_type: 'other', confidence: 0, reasoning: 'parse error: ' + responseText.substring(0, 200) }; }\nif (!validTypes.includes(c.call_type)) c.call_type = 'other';\nreturn [{ json: Object.assign({}, c, { call_id: callId }) }];"
       }
     },
     {
@@ -145,25 +212,47 @@
       "name": "Update Call Type",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1740, 200],
+      "position": [
+        1740,
+        200
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
-        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $json.call_id }}" }] },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.call_id }}"
+            }
+          ]
+        },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={ \"call_type\": \"{{ $('Parse Classification').item.json.call_type }}\", \"status\": \"processing\" }" },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ call_type: $('Parse Classification').first().json.call_type, status: 'processing' }) }}"
       }
     },
     {
@@ -171,11 +260,28 @@
       "name": "Is Team Call?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1960, 200],
+      "position": [
+        1960,
+        200
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-team", "leftValue": "={{ $('Parse Classification').item.json.call_type }}", "rightValue": "team", "operator": { "type": "string", "operation": "equals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-team",
+              "leftValue": "={{ $('Parse Classification').first().json.call_type }}",
+              "rightValue": "team",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
           "combinator": "and"
         }
       }
@@ -185,23 +291,41 @@
       "name": "Get Active Rubric",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2180, 340],
+      "position": [
+        2180,
+        340
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rubrics",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "is_active", "value": "eq.true" },
-            { "name": "select", "value": "*" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "is_active",
+              "value": "eq.true"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            }
           ]
         },
         "options": {}
@@ -212,22 +336,37 @@
       "name": "Get Call Data",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2180, 500],
+      "position": [
+        2180,
+        500
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "id", "value": "=eq.{{ $('Parse Classification').item.json.call_id }}" },
-            { "name": "select", "value": "*" }
+            {
+              "name": "id",
+              "value": "=eq.{{ $('Parse Classification').first().json.call_id }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            }
           ]
         },
         "options": {}
@@ -238,10 +377,13 @@
       "name": "Run Rules",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2400, 340],
+      "position": [
+        2400,
+        340
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const call = $('Get Call Data').first().json[0];\nconst rubricRow = $('Get Active Rubric').first().json[0];\nif (!call) throw new Error('Call not found');\nif (!rubricRow) throw new Error('No active rubric');\nconst rules = rubricRow.content;\nconst callId = call.id;\nconst callType = call.call_type || 'other';\nconst findings = [];\nconst segments = Array.isArray(call.transcript_segments) ? call.transcript_segments : [];\nlet repLabel = 'host';\nif (segments.length > 0) { const speakers = [...new Set(segments.map(s => s.speaker).filter(Boolean))]; if (!speakers.includes('host') && speakers.length > 0) repLabel = speakers[0]; }\nconst repSegments = segments.filter(s => s.speaker === repLabel);\nconst repText = repSegments.map(s => s.text || s.content || '').join(' ');\nfor (const banned of (rules.banned_words || [])) {\n  const appliesTo = banned.applies_to_call_types || [];\n  if (appliesTo.length > 0 && !appliesTo.includes(callType)) continue;\n  const word = banned.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  if (matches.length > 0) {\n    const contextSnippets = repSegments.filter(s => (s.text || s.content || '').toLowerCase().includes(word)).slice(0, 5).map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Do not use the word \"${banned.word}\" on ${appliesTo.join(' or ')} calls. ${banned.reason || ''} You said it ${matches.length} time${matches.length > 1 ? 's' : ''} on this call.`;\n    findings.push({ call_id: callId, rule_key: 'banned_word_' + word, value: { word, count: matches.length, suggestion }, severity: banned.severity || 'critical', context_snippets: contextSnippets });\n  }\n}\nfor (const filler of (rules.filler_words || [])) {\n  const word = filler.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  const count = matches.length;\n  const threshold = filler.threshold_per_call || 5;\n  if (count > threshold) {\n    const contextSnippets = repSegments.filter(s => (s.text || s.content || '').toLowerCase().includes(word)).slice(0, 3).map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Reduce use of \"${word}\". You said it ${count} times (target: under ${threshold}). Replace with a deliberate pause.`;\n    findings.push({ call_id: callId, rule_key: 'filler_word_' + word, value: { word, count, threshold, suggestion }, severity: filler.severity || 'warning', context_snippets: contextSnippets });\n  }\n}\nconst totalSeconds = call.duration_seconds || 0;\nif (rules.talk_ratio && totalSeconds > 0 && segments.length > 0) {\n  const repSeconds = repSegments.reduce((sum, s) => sum + Math.max(0, (s.end_time || 0) - (s.start_time || 0)), 0);\n  const repPercentage = Math.round((repSeconds / totalSeconds) * 100);\n  const maxPercentage = rules.talk_ratio.max_rep_percentage || 60;\n  if (repPercentage > maxPercentage) {\n    const suggestion = `You spoke for ${repPercentage}% of this call — target is under ${maxPercentage}%. Ask a question, then stop talking.`;\n    findings.push({ call_id: callId, rule_key: 'talk_ratio', value: { rep_percentage: repPercentage, max_allowed: maxPercentage, suggestion }, severity: rules.talk_ratio.severity || 'warning', context_snippets: [] });\n  }\n}\nif (findings.length === 0) return [{ json: { __no_findings: true, call_id: callId } }];\nreturn findings.map(f => ({ json: f }));"
+        "jsCode": "const call = $('Get Call Data').first().json;\nconst rubricRow = $('Get Active Rubric').first().json;\nif (!call) throw new Error('Call not found');\nif (!rubricRow) throw new Error('No active rubric');\nconst rules = rubricRow.content;\nconst callId = call.id;\nconst callType = call.call_type || 'other';\nconst findings = [];\nconst segments = Array.isArray(call.transcript_segments) ? call.transcript_segments : [];\nlet repLabel = 'host';\nif (segments.length > 0) { const speakers = [...new Set(segments.map(s => s.speaker).filter(Boolean))]; if (!speakers.includes('host') && speakers.length > 0) repLabel = speakers[0]; }\nconst repSegments = segments.filter(s => s.speaker === repLabel);\nconst repText = repSegments.map(s => s.text || s.content || '').join(' ');\nfor (const banned of (rules.banned_words || [])) {\n  const appliesTo = banned.applies_to_call_types || [];\n  if (appliesTo.length > 0 && !appliesTo.includes(callType)) continue;\n  const word = banned.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  if (matches.length > 0) {\n    const contextSnippets = repSegments.filter(s => (s.text || s.content || '').toLowerCase().includes(word)).slice(0, 5).map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Do not use the word \"${banned.word}\" on ${appliesTo.join(' or ')} calls. ${banned.reason || ''} You said it ${matches.length} time${matches.length > 1 ? 's' : ''} on this call.`;\n    findings.push({ call_id: callId, rule_key: 'banned_word_' + word, value: { word, count: matches.length, suggestion }, severity: banned.severity || 'critical', context_snippets: contextSnippets });\n  }\n}\nfor (const filler of (rules.filler_words || [])) {\n  const word = filler.word.toLowerCase();\n  const regex = new RegExp('\\\\b' + word + '\\\\b', 'gi');\n  const matches = repText.match(regex) || [];\n  const count = matches.length;\n  const threshold = filler.threshold_per_call || 5;\n  if (count > threshold) {\n    const contextSnippets = repSegments.filter(s => (s.text || s.content || '').toLowerCase().includes(word)).slice(0, 3).map(s => ({ text: s.text || s.content, timestamp: s.start_time }));\n    const suggestion = `Reduce use of \"${word}\". You said it ${count} times (target: under ${threshold}). Replace with a deliberate pause.`;\n    findings.push({ call_id: callId, rule_key: 'filler_word_' + word, value: { word, count, threshold, suggestion }, severity: filler.severity || 'warning', context_snippets: contextSnippets });\n  }\n}\nconst totalSeconds = call.duration_seconds || 0;\nif (rules.talk_ratio && totalSeconds > 0 && segments.length > 0) {\n  const repSeconds = repSegments.reduce((sum, s) => sum + Math.max(0, (s.end_time || 0) - (s.start_time || 0)), 0);\n  const repPercentage = Math.round((repSeconds / totalSeconds) * 100);\n  const maxPercentage = rules.talk_ratio.max_rep_percentage || 60;\n  if (repPercentage > maxPercentage) {\n    const suggestion = `You spoke for ${repPercentage}% of this call — target is under ${maxPercentage}%. Ask a question, then stop talking.`;\n    findings.push({ call_id: callId, rule_key: 'talk_ratio', value: { rep_percentage: repPercentage, max_allowed: maxPercentage, suggestion }, severity: rules.talk_ratio.severity || 'warning', context_snippets: [] });\n  }\n}\nif (findings.length === 0) return [{ json: { __no_findings: true, call_id: callId } }];\nreturn findings.map(f => ({ json: f }));"
       }
     },
     {
@@ -249,11 +391,28 @@
       "name": "Has Findings?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2620, 340],
+      "position": [
+        2620,
+        340
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-findings", "leftValue": "={{ $json.__no_findings }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-findings",
+              "leftValue": "={{ $json.__no_findings }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
           "combinator": "and"
         }
       }
@@ -263,7 +422,10 @@
       "name": "Build Findings Array",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2840, 240],
+      "position": [
+        2840,
+        240
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "const findings = $input.all().map(item => ({ call_id: item.json.call_id, rule_key: item.json.rule_key, value: item.json.value, severity: item.json.severity, context_snippets: item.json.context_snippets || [] }));\nreturn [{ json: { findings } }];"
@@ -274,23 +436,38 @@
       "name": "Insert Rule Findings",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3060, 240],
+      "position": [
+        3060,
+        240
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rule_findings",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.findings) }}" },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.findings) }}"
       }
     },
     {
@@ -298,35 +475,49 @@
       "name": "Score with Groq",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2840, 440],
+      "position": [
+        2840,
+        440
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer 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" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 4000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert sales coach for WeBuildTrades. Evaluate the rep against this rubric:\\n{{ JSON.stringify($('Get Active Rubric').first().json[0].content, null, 2) }}\\n\\nReturn ONLY valid JSON: {\\\"overall_score\\\": <0-10>, \\\"summary\\\": \\\"...\\\", \\\"strengths\\\": [{\\\"criterion\\\": \\\"...\\\", \\\"score\\\": 0-10, \\\"description\\\": \\\"...\\\", \\\"evidence_quote\\\": \\\"...\\\", \\\"timestamp_seconds\\\": null}], \\\"improvements\\\": [{\\\"criterion\\\": \\\"...\\\", \\\"score\\\": 0-10, \\\"description\\\": \\\"...\\\", \\\"evidence_quote\\\": \\\"...\\\", \\\"timestamp_seconds\\\": null}]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Evaluate this call:\\n\\n{{ $('Get Call Data').first().json[0].transcript_raw || 'No transcript available.' }}\"\n    }\n  ]\n}"
+        "options": {
+          "timeout": 120000
         },
-        "options": {}
-      }
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 5000, messages: [ { role: 'system', content: 'You are coaching a sales rep at WeBuildTrades. Score them against the rubric using EXACT transcript quotes. Be exhaustive: extract every action, decision, risk, and suggestion. Use real names. Quote-anchored. CRITICAL: Every claim must cite a real transcript quote. Never paraphrase or consolidate. Never write generic feedback like \\\"could improve\\\" - cite specific moments. Return ONLY valid JSON: meeting_title (5-10 words), overall_score (number 0-10), summary (1 sentence), executive_summary (5-8 sentence narrative), meeting_outcome (1-2 sentences: what concretely changed - did the deal advance, follow-up booked, prospect more or less likely to buy), host_department (one of: sales for client calls), attendees (array of {name, role, is_internal}), key_points (array of strings - actual topics), projects_discussed (array of {name, status, owner, department, summary, next_action}), strengths (array of {criterion, score 0-10, description (specific moment), evidence_quote (exact)}), improvements (array of {criterion, score 0-10, description (specific issue + concrete next-time action), evidence_quote (exact)}), action_items (array of {task (quoted/near-quoted), owner, due, priority, context}), decisions_made (array of {decision, decided_by, context, impact}), open_questions (array of strings), next_steps (array of strings), risks (array of {risk, severity, area}), suggestions (array of {suggestion, suggested_by, value}), banned_phrases_observed (array of strings - actual usages from this rep, formatted: \\\"phrase (count: N, context: ...)\\\"). Rubric: ' + JSON.stringify($('Get Active Rubric').first().json.content) }, { role: 'user', content: 'Attendees:\\n' + JSON.stringify((($('Verify HMAC').first().json.body.attendees) || []).map(function(a){return {name:a.name, email:a.email};})) + '\\nCall type: ' + ($('Parse Classification').first().json.call_type || 'unknown') + '\\n\\nFULL TRANSCRIPT (extract EVERYTHING - quote-anchored):\\n\\n' + ($('Get Call Data').first().json.transcript_raw || 'No transcript.') } ] }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "master-0017",
       "name": "Parse Scorecard",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3060, 440],
+      "position": [
+        3060,
+        440
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Parse Classification').first().json.call_id;\nconst rubric = $('Get Active Rubric').first().json[0];\nlet scorecard;\ntry { scorecard = JSON.parse(responseText); } catch (e) { throw new Error('Failed to parse scorecard: ' + responseText.substring(0, 300)); }\nif (typeof scorecard.overall_score !== 'number') scorecard.overall_score = 0;\nif (!Array.isArray(scorecard.strengths)) scorecard.strengths = [];\nif (!Array.isArray(scorecard.improvements)) scorecard.improvements = [];\nif (!scorecard.summary) scorecard.summary = '';\nconst allEvidence = [\n  ...scorecard.strengths.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null })),\n  ...scorecard.improvements.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null }))\n];\nreturn [{ json: { call_id: callId, rubric_id: rubric.id, overall_score: Math.round(scorecard.overall_score * 10) / 10, summary: scorecard.summary, strengths: scorecard.strengths, improvements: scorecard.improvements, llm_model: 'llama-3.3-70b-versatile', all_evidence: allEvidence } }];"
+        "jsCode": "const inputs = $input.all();\nconst firstJson = (inputs && inputs[0] && inputs[0].json) || {};\nconst choices = firstJson.choices;\nlet responseText = String((choices && choices[0] && choices[0].message && choices[0].message.content) || '');\nconst fence = String.fromCharCode(96, 96, 96);\nif (responseText.indexOf(fence) === 0) {\n  responseText = responseText.substring(3);\n  if (responseText.indexOf('json') === 0) responseText = responseText.substring(4);\n  responseText = responseText.trim();\n  if (responseText.endsWith(fence)) responseText = responseText.substring(0, responseText.length - 3);\n}\nconst fb = responseText.indexOf('{');\nif (fb > 0) responseText = responseText.substring(fb);\nconst lb = responseText.lastIndexOf('}');\nif (lb > -1 && lb < responseText.length - 1) responseText = responseText.substring(0, lb + 1);\nresponseText = responseText.trim();\n\nconst callId = $('Parse Classification').first().json.call_id;\nconst rubric = $('Get Active Rubric').first().json;\n\nlet a;\nif (!responseText) {\n  a = { meeting_title: '', overall_score: null, summary: 'Score model returned no content.', executive_summary: '', host_department: 'sales', attendees: [], strengths: [], improvements: [], key_points: [], projects_discussed: [], action_items: [], decisions_made: [], open_questions: [], next_steps: [], risks: [], suggestions: [], banned_phrases_observed: [] };\n} else {\n  try { a = JSON.parse(responseText); }\n  catch (e) { a = { meeting_title: '', overall_score: null, summary: 'Score model JSON parse failed.', executive_summary: '', host_department: 'sales', attendees: [], strengths: [], improvements: [], key_points: [], projects_discussed: [], action_items: [], decisions_made: [], open_questions: [], next_steps: [], risks: [], suggestions: [], banned_phrases_observed: [] }; }\n}\n\nif (typeof a.overall_score !== 'number' && a.overall_score !== null) a.overall_score = null;\nconst arr = ['strengths', 'improvements', 'key_points', 'projects_discussed', 'attendees', 'action_items', 'decisions_made', 'open_questions', 'next_steps', 'risks', 'suggestions', 'banned_phrases_observed'];\nfor (const f of arr) if (!Array.isArray(a[f])) a[f] = [];\nif (!a.summary) a.summary = '';\nif (!a.executive_summary) a.executive_summary = '';\nif (!a.meeting_title) a.meeting_title = '';\nif (!a.host_department) a.host_department = 'sales';\n\nconst allEvidence = [];\nfor (const s of a.strengths) if (s && s.evidence_quote) allEvidence.push({ criterion_key: 'strength_' + (s.criterion || 'item'), quote: String(s.evidence_quote), timestamp_seconds: s.timestamp_seconds || null });\nfor (const s of a.improvements) if (s && s.evidence_quote) allEvidence.push({ criterion_key: 'improvement_' + (s.criterion || 'item'), quote: String(s.evidence_quote), timestamp_seconds: s.timestamp_seconds || null });\nfor (const p of a.key_points) if (p) allEvidence.push({ criterion_key: 'key_point', quote: String(p), timestamp_seconds: null });\nfor (const p of a.projects_discussed) if (p && p.name) {\n  const status = p.status ? ' [' + String(p.status).toUpperCase() + ']' : '';\n  const owner = p.owner ? ' - Owner: ' + p.owner : '';\n  const dept = p.department ? ' (' + p.department + ')' : '';\n  const next = p.next_action ? ' --> ' + p.next_action : '';\n  const summary = p.summary ? ' - ' + p.summary : '';\n  allEvidence.push({ criterion_key: 'project', quote: p.name + status + dept + owner + summary + next, timestamp_seconds: null });\n}\nfor (const ai of a.action_items) if (ai && ai.task) {\n  const owner = ai.owner ? ' - Owner: ' + ai.owner : '';\n  const due = ai.due ? ' - Due: ' + ai.due : '';\n  const priority = ai.priority ? ' [' + String(ai.priority).toUpperCase() + ']' : '';\n  const context = ai.context ? ' - ' + ai.context : '';\n  allEvidence.push({ criterion_key: 'action_item', quote: String(ai.task) + owner + due + priority + context, timestamp_seconds: null });\n}\nfor (const d of a.decisions_made) if (d && d.decision) {\n  const by = d.decided_by ? ' (by ' + d.decided_by + ')' : '';\n  const ctx = d.context ? ' - ' + d.context : '';\n  const impact = d.impact ? ' [impact: ' + d.impact + ']' : '';\n  allEvidence.push({ criterion_key: 'decision', quote: String(d.decision) + by + ctx + impact, timestamp_seconds: null });\n}\nfor (const q of a.open_questions) if (q) allEvidence.push({ criterion_key: 'open_question', quote: String(q), timestamp_seconds: null });\nfor (const n of a.next_steps) if (n) allEvidence.push({ criterion_key: 'next_step', quote: String(n), timestamp_seconds: null });\nfor (const r of a.risks) {\n  if (!r) continue;\n  if (typeof r === 'string') allEvidence.push({ criterion_key: 'risk', quote: r, timestamp_seconds: null });\n  else if (r.risk) {\n    const sev = r.severity ? ' [' + String(r.severity).toUpperCase() + ']' : '';\n    const area = r.area ? ' (' + r.area + ')' : '';\n    allEvidence.push({ criterion_key: 'risk', quote: r.risk + sev + area, timestamp_seconds: null });\n  }\n}\nfor (const s of a.suggestions) {\n  if (!s) continue;\n  if (typeof s === 'string') allEvidence.push({ criterion_key: 'suggestion', quote: s, timestamp_seconds: null });\n  else if (s.suggestion) {\n    const by = s.suggested_by ? ' (by ' + s.suggested_by + ')' : '';\n    const v = s.value ? ' - ' + s.value : '';\n    allEvidence.push({ criterion_key: 'suggestion', quote: s.suggestion + by + v, timestamp_seconds: null });\n  }\n}\nfor (const att of a.attendees) if (att && att.name) {\n  const role = att.role ? ' (' + att.role + ')' : '';\n  const ext = att.is_internal === false ? ' [external]' : '';\n  allEvidence.push({ criterion_key: 'attendee', quote: att.name + role + ext, timestamp_seconds: null });\n}\nfor (const bp of a.banned_phrases_observed) if (bp) allEvidence.push({ criterion_key: 'banned_phrase', quote: String(bp), timestamp_seconds: null });\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric.id,\n  meeting_title: a.meeting_title,\n  host_department: a.host_department,\n  overall_score: typeof a.overall_score === 'number' ? Math.round(a.overall_score * 10) / 10 : null,\n  summary: (a.meeting_title ? a.meeting_title + '. ' : '') + (a.summary || a.executive_summary || ''),\n  executive_summary: a.executive_summary,\n  strengths: a.strengths,\n  improvements: a.improvements,\n  llm_model: 'llama-3.3-70b-versatile',\n  all_evidence: allEvidence\n} }];"
       }
     },
     {
@@ -334,26 +525,38 @@
       "name": "Insert Scorecard",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3280, 440],
+      "position": [
+        3280,
+        440
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"call_id\": \"{{ $json.call_id }}\",\n  \"rubric_id\": \"{{ $json.rubric_id }}\",\n  \"overall_score\": {{ $json.overall_score }},\n  \"summary\": {{ JSON.stringify($json.summary) }},\n  \"strengths\": {{ JSON.stringify($json.strengths) }},\n  \"improvements\": {{ JSON.stringify($json.improvements) }},\n  \"llm_model\": \"{{ $json.llm_model }}\"\n}"
-        },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Compute Department (Sales)').first().json.scorecard_body) }}"
       }
     },
     {
@@ -361,10 +564,13 @@
       "name": "Build Evidence Array",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3500, 440],
+      "position": [
+        3500,
+        440
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const scorecardId = $('Insert Scorecard').first().json[0].id;\nconst allEvidence = $('Parse Scorecard').first().json.all_evidence || [];\nif (allEvidence.length === 0) return [{ json: { __skip_evidence: true } }];\nconst evidenceRows = allEvidence.map(e => ({ scorecard_id: scorecardId, criterion_key: e.criterion_key, quote: e.quote, timestamp_seconds: e.timestamp_seconds }));\nreturn [{ json: { evidence: evidenceRows } }];"
+        "jsCode": "const scorecardId = $('Insert Scorecard').first().json.id;\nconst allEvidence = $('Parse Scorecard').first().json.all_evidence || [];\nif (allEvidence.length === 0) return [{ json: { __skip_evidence: true } }];\nconst evidenceRows = allEvidence.map(e => ({ scorecard_id: scorecardId, criterion_key: e.criterion_key, quote: e.quote, timestamp_seconds: e.timestamp_seconds }));\nreturn [{ json: { evidence: evidenceRows } }];"
       }
     },
     {
@@ -372,11 +578,28 @@
       "name": "Has Evidence?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [3720, 440],
+      "position": [
+        3720,
+        440
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-ev", "leftValue": "={{ $json.__skip_evidence }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-ev",
+              "leftValue": "={{ $json.__skip_evidence }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
           "combinator": "and"
         }
       }
@@ -386,23 +609,38 @@
       "name": "Insert Evidence",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3940, 360],
+      "position": [
+        3940,
+        360
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.evidence) }}" },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.evidence) }}"
       }
     },
     {
@@ -410,35 +648,51 @@
       "name": "Generate Meeting Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2180, 60],
+      "position": [
+        2180,
+        60
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer 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" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 3000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert meeting intelligence agent for WeBuildTrades. Analyze the meeting transcript and return ONLY valid JSON:\\n{\\\"title\\\": \\\"...\\\", \\\"one_line_summary\\\": \\\"...\\\", \\\"key_points\\\": [\\\"...\\\"], \\\"decisions_made\\\": [{\\\"decision\\\": \\\"...\\\", \\\"decided_by\\\": \\\"...\\\", \\\"context\\\": \\\"...\\\"}], \\\"action_items\\\": [{\\\"task\\\": \\\"...\\\", \\\"owner\\\": \\\"...\\\", \\\"due\\\": null, \\\"priority\\\": \\\"high\\\"|\\\"medium\\\"|\\\"low\\\"}], \\\"improvements_suggested\\\": [{\\\"area\\\": \\\"...\\\", \\\"suggestion\\\": \\\"...\\\", \\\"suggested_by\\\": \\\"...\\\"}], \\\"open_questions\\\": [\\\"...\\\"], \\\"next_meeting_topics\\\": [\\\"...\\\"]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this meeting:\\n\\nCall type: {{ $('Parse Classification').item.json.call_type }}\\nDuration: {{ $('Verify HMAC').item.json.body.duration || 0 }} seconds\\n\\nTranscript:\\n{{ $('Verify HMAC').item.json.body.transcript?.full_transcript || 'No transcript available.' }}\"\n    }\n  ]\n}"
+        "options": {
+          "timeout": 120000
         },
-        "options": {}
-      }
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 5000, messages: [ { role: 'system', content: 'You are extracting structured business intelligence from a meeting transcript. Your job is COMPLETENESS, not summarization. Be exhaustive. CRITICAL RULES - VIOLATING ANY OF THESE PRODUCES UNUSABLE OUTPUT: 1. EXTRACT EVERYTHING. If the transcript has 12 action items, list ALL 12. Do NOT consolidate similar items. Do NOT skip minor ones. Do NOT generalize. 2. USE THE EXACT WORDS. Every action_item, decision, key_point MUST use phrasing from the transcript. NEVER write generic phrases like \\\"continue development\\\" or \\\"review and provide feedback\\\" - quote what was actually said. 3. NAME REAL PEOPLE. Use the actual attendee names from the attendee list provided. NEVER invent roles like \\\"Senior Meeting Analyst\\\". Use the role you can infer from the transcript (e.g. Founder, AI Lead, Sales Manager, Operations). If unsure, use \\\"Team Member\\\". 4. ASSIGN DEPARTMENTS CORRECTLY by keyword:    - sales / sales calls / prospects / leads / closing / proposal -> sales    - SEO / blog / website / search / Kool -> seo    - content / social media / video / Cameron / images / posts -> content    - finance / budget / revenue / cost -> finance    - operations / infrastructure / apps / Zain / AI projects / automation -> ops    - strategy / pause WeBuildTrades / vision / business model / Daniel-led decisions -> executive 5. NO SHORTCUTS. If you find yourself writing \\\"continue\\\" or \\\"review\\\" or \\\"explore\\\" - STOP and re-read the transcript for the specific action mentioned. 6. RISKS must be from the transcript. Do NOT invent generic risks like \\\"may not deliver on time\\\". Only include risks that someone in the call actually raised. 7. BANNED PHRASES must be ACTUAL occurrences in the transcript. Search for: mate, basically, essentially, obviously, you know, sort of, kind of, honestly, literally, um, uh. List each one ACTUALLY USED (not the rule description). Return ONLY valid JSON with these keys: meeting_title (specific 5-10 word title naming the actual subject), one_line_summary (one clear sentence of the main outcome), executive_summary (5-8 sentences of flowing prose: who attended, topics covered in order, what was decided and by whom, what the outcome was, what happens next), meeting_outcome (1-2 sentences explicitly describing what CHANGED because of this meeting - what is the team going to do that they were not before), host_department (one of: executive, sales, seo, ops, finance, content), attendees (array of {name, role, is_internal} - use real names from attendee list), key_points (array of 8-15+ specific topics actually discussed - quote the substance), projects_discussed (array of {name, status (delivered|in_progress|paused|proposed|blocked), owner, department (use the dept rule above), summary (1-2 sentences of what was said about it), next_action}), decisions_made (array of {decision, decided_by, context, impact} - extract EVERY decision, including small ones), action_items (array of {task, owner, due, priority (high|medium|low), context} - quote-anchored. If 12 actions in transcript, return 12 entries), open_questions (array of strings - questions raised but not resolved), next_steps (array of strings - concrete things to happen after this meeting), risks (array of {risk, severity (high|medium|low), area} - only ACTUAL risks raised, not generic), suggestions (array of {suggestion, suggested_by, value}), banned_phrases_observed (array of strings - each ACTUAL usage in the transcript, formatted as \\\"<phrase> (<context fragment>)\\\")' }, { role: 'user', content: 'Attendees:\\n' + JSON.stringify((($('Verify HMAC').first().json.body.attendees) || []).map(function(a){return {name:a.name, email:a.email};})) + '\\n\\nDuration: ' + (($('Verify HMAC').first().json.body.duration) || 0) + ' seconds\\n\\nFULL TRANSCRIPT (read every line, extract EVERYTHING actionable):\\n\\n' + (($('Verify HMAC').first().json.body.transcript || {}).full_transcript || 'No transcript.') + '\\n\\n---\\nReminder: EXTRACT EVERYTHING. No summarization. Quote-anchored.' } ] }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true,
+      "alwaysOutputData": true
     },
     {
       "id": "master-0023",
       "name": "Parse Meeting Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2400, 60],
+      "position": [
+        2400,
+        60
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Parse Classification').first().json.call_id;\nlet summary;\ntry { summary = JSON.parse(responseText); } catch (e) { throw new Error('Failed to parse meeting summary: ' + responseText.substring(0, 300)); }\nif (!Array.isArray(summary.key_points)) summary.key_points = [];\nif (!Array.isArray(summary.decisions_made)) summary.decisions_made = [];\nif (!Array.isArray(summary.action_items)) summary.action_items = [];\nif (!Array.isArray(summary.improvements_suggested)) summary.improvements_suggested = [];\nif (!Array.isArray(summary.open_questions)) summary.open_questions = [];\nif (!Array.isArray(summary.next_meeting_topics)) summary.next_meeting_topics = [];\nreturn [{ json: { call_id: callId, summary } }];"
+        "jsCode": "const inputs = $input.all();\nconst firstJson = (inputs && inputs[0] && inputs[0].json) || {};\nconst choices = firstJson.choices;\nlet responseText = String((choices && choices[0] && choices[0].message && choices[0].message.content) || '');\nconst fence = String.fromCharCode(96, 96, 96);\nif (responseText.indexOf(fence) === 0) {\n  responseText = responseText.substring(3);\n  if (responseText.indexOf('json') === 0) responseText = responseText.substring(4);\n  responseText = responseText.trim();\n  if (responseText.endsWith(fence)) responseText = responseText.substring(0, responseText.length - 3);\n}\nconst fb = responseText.indexOf('{');\nif (fb > 0) responseText = responseText.substring(fb);\nconst lb = responseText.lastIndexOf('}');\nif (lb > -1 && lb < responseText.length - 1) responseText = responseText.substring(0, lb + 1);\nresponseText = responseText.trim();\n\nconst callId = $('Parse Classification').first().json.call_id;\nlet s;\nif (!responseText) {\n  s = { meeting_title: '', one_line_summary: 'Model returned no content', executive_summary: '', host_department: '', attendees: [], key_points: [], projects_discussed: [], decisions_made: [], action_items: [], open_questions: [], next_steps: [], risks: [], suggestions: [], banned_phrases_observed: [] };\n} else {\n  try { s = JSON.parse(responseText); }\n  catch (e) { s = { meeting_title: '', one_line_summary: 'Model JSON parse failed', executive_summary: '', host_department: '', attendees: [], key_points: [], projects_discussed: [], decisions_made: [], action_items: [], open_questions: [], next_steps: [], risks: [], suggestions: [], banned_phrases_observed: [] }; }\n}\nconst arr = ['attendees', 'key_points', 'projects_discussed', 'decisions_made', 'action_items', 'open_questions', 'next_steps', 'risks', 'suggestions', 'banned_phrases_observed'];\nfor (const f of arr) if (!Array.isArray(s[f])) s[f] = [];\nif (!s.meeting_title) s.meeting_title = '';\nif (!s.host_department) s.host_department = 'ops';\n\nreturn [{ json: { call_id: callId, summary: s } }];"
       }
     },
     {
@@ -446,26 +700,38 @@
       "name": "Store Meeting Scorecard",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2620, 60],
+      "position": [
+        2620,
+        60
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"call_id\": \"{{ $json.call_id }}\",\n  \"rubric_id\": \"00000000-0000-0000-0000-000000000002\",\n  \"overall_score\": null,\n  \"summary\": {{ JSON.stringify($json.summary.one_line_summary) }},\n  \"strengths\": {{ JSON.stringify($json.summary.key_points.map(p => ({ point: p }))) }},\n  \"improvements\": {{ JSON.stringify($json.summary.improvements_suggested) }},\n  \"llm_model\": \"llama-3.3-70b-versatile\"\n}"
-        },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Compute Department').first().json.scorecard_body) }}"
       }
     },
     {
@@ -473,10 +739,13 @@
       "name": "Store Meeting Evidence",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2840, 60],
+      "position": [
+        2840,
+        60
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const scorecardId = $('Store Meeting Scorecard').first().json[0].id;\nconst summary = $('Parse Meeting Summary').first().json.summary;\nconst evidenceRows = [\n  ...(summary.action_items || []).map(item => ({ scorecard_id: scorecardId, criterion_key: 'action_item', quote: item.task + (item.owner ? ' — Owner: ' + item.owner : '') + (item.due ? ' — Due: ' + item.due : ''), timestamp_seconds: null })),\n  ...(summary.decisions_made || []).map(d => ({ scorecard_id: scorecardId, criterion_key: 'decision', quote: d.decision + (d.decided_by ? ' (decided by ' + d.decided_by + ')' : ''), timestamp_seconds: null })),\n  ...(summary.open_questions || []).map(q => ({ scorecard_id: scorecardId, criterion_key: 'open_question', quote: q, timestamp_seconds: null }))\n];\nif (evidenceRows.length === 0) return [{ json: { call_id: $('Parse Meeting Summary').first().json.call_id } }];\nreturn [{ json: { evidence: evidenceRows, call_id: $('Parse Meeting Summary').first().json.call_id } }];"
+        "jsCode": "const scorecardId = $('Store Meeting Scorecard').first().json.id;\nconst summary = $('Parse Meeting Summary').first().json.summary;\nconst rows = [];\n\nfor (const p of (summary.key_points || [])) if (p) rows.push({ scorecard_id: scorecardId, criterion_key: 'key_point', quote: String(p), timestamp_seconds: null });\n\nfor (const p of (summary.projects_discussed || [])) if (p && p.name) {\n  const status = p.status ? ' [' + String(p.status).toUpperCase() + ']' : '';\n  const owner = p.owner ? ' - Owner: ' + p.owner : '';\n  const dept = p.department ? ' (' + p.department + ')' : '';\n  const next = p.next_action ? ' --> ' + p.next_action : '';\n  const sum = p.summary ? ' - ' + p.summary : '';\n  rows.push({ scorecard_id: scorecardId, criterion_key: 'project', quote: p.name + status + dept + owner + sum + next, timestamp_seconds: null });\n}\n\nfor (const a of (summary.action_items || [])) if (a && a.task) {\n  const owner = a.owner ? ' - Owner: ' + a.owner : '';\n  const due = a.due ? ' - Due: ' + a.due : '';\n  const priority = a.priority ? ' [' + String(a.priority).toUpperCase() + ']' : '';\n  const context = a.context ? ' - ' + a.context : '';\n  rows.push({ scorecard_id: scorecardId, criterion_key: 'action_item', quote: a.task + owner + due + priority + context, timestamp_seconds: null });\n}\n\nfor (const d of (summary.decisions_made || [])) if (d && d.decision) {\n  const by = d.decided_by ? ' (by ' + d.decided_by + ')' : '';\n  const ctx = d.context ? ' - ' + d.context : '';\n  const impact = d.impact ? ' [impact: ' + d.impact + ']' : '';\n  rows.push({ scorecard_id: scorecardId, criterion_key: 'decision', quote: d.decision + by + ctx + impact, timestamp_seconds: null });\n}\n\nfor (const q of (summary.open_questions || [])) if (q) rows.push({ scorecard_id: scorecardId, criterion_key: 'open_question', quote: String(q), timestamp_seconds: null });\nfor (const n of (summary.next_steps || [])) if (n) rows.push({ scorecard_id: scorecardId, criterion_key: 'next_step', quote: String(n), timestamp_seconds: null });\n\nfor (const r of (summary.risks || [])) {\n  if (!r) continue;\n  if (typeof r === 'string') rows.push({ scorecard_id: scorecardId, criterion_key: 'risk', quote: r, timestamp_seconds: null });\n  else if (r.risk) {\n    const sev = r.severity ? ' [' + String(r.severity).toUpperCase() + ']' : '';\n    const area = r.area ? ' (' + r.area + ')' : '';\n    rows.push({ scorecard_id: scorecardId, criterion_key: 'risk', quote: r.risk + sev + area, timestamp_seconds: null });\n  }\n}\n\nfor (const s of (summary.suggestions || [])) {\n  if (!s) continue;\n  if (typeof s === 'string') rows.push({ scorecard_id: scorecardId, criterion_key: 'suggestion', quote: s, timestamp_seconds: null });\n  else if (s.suggestion) {\n    const by = s.suggested_by ? ' (by ' + s.suggested_by + ')' : '';\n    const v = s.value ? ' - ' + s.value : '';\n    rows.push({ scorecard_id: scorecardId, criterion_key: 'suggestion', quote: s.suggestion + by + v, timestamp_seconds: null });\n  }\n}\n\nfor (const att of (summary.attendees || [])) if (att && att.name) {\n  const role = att.role ? ' (' + att.role + ')' : '';\n  const ext = att.is_internal === false ? ' [external]' : '';\n  rows.push({ scorecard_id: scorecardId, criterion_key: 'attendee', quote: att.name + role + ext, timestamp_seconds: null });\n}\n\nfor (const bp of (summary.banned_phrases_observed || [])) if (bp) rows.push({ scorecard_id: scorecardId, criterion_key: 'banned_phrase', quote: String(bp), timestamp_seconds: null });\n\nreturn [{ json: { evidence: rows, call_id: $('Parse Meeting Summary').first().json.call_id, row_count: rows.length } }];"
       }
     },
     {
@@ -484,49 +753,88 @@
       "name": "Insert Meeting Evidence",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3060, 60],
+      "position": [
+        3060,
+        60
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.evidence) }}" },
-        "options": {}
-      }
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.evidence || []) }}"
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
     },
     {
       "id": "master-0027",
       "name": "Update Call Scored",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [4160, 340],
+      "position": [
+        4160,
+        340
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
-        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" }] },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $('Parse Classification').first().json.call_id }}"
+            }
+          ]
+        },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={ \"status\": \"scored\" }" },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'scored' }) }}"
       }
     },
     {
@@ -534,7 +842,10 @@
       "name": "Get Participants",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [4380, 200],
+      "position": [
+        4380,
+        200
+      ],
       "alwaysOutputData": true,
       "parameters": {
         "method": "GET",
@@ -542,16 +853,31 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "call_id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" },
-            { "name": "is_external", "value": "eq.false" },
-            { "name": "select", "value": "*,team_members(name,email,role)" }
+            {
+              "name": "call_id",
+              "value": "=eq.{{ $('Parse Classification').first().json.call_id }}"
+            },
+            {
+              "name": "is_external",
+              "value": "eq.false"
+            },
+            {
+              "name": "select",
+              "value": "*,team_members(name,email,role)"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            }
           ]
         },
         "options": {}
@@ -562,24 +888,45 @@
       "name": "Get Final Scorecard",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [4380, 400],
+      "position": [
+        4380,
+        400
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "call_id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" },
-            { "name": "select", "value": "*" },
-            { "name": "order", "value": "created_at.desc" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "call_id",
+              "value": "=eq.{{ $('Parse Classification').first().json.call_id }}"
+            },
+            {
+              "name": "select",
+              "value": "*,scorecard_evidence(*)"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            }
           ]
         },
         "options": {}
@@ -590,10 +937,13 @@
       "name": "Build Email List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4600, 300],
+      "position": [
+        4600,
+        300
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const participants = $('Get Participants').all();\nconst scorecardRes = $('Get Final Scorecard').first().json;\nconst scorecard = Array.isArray(scorecardRes) ? scorecardRes[0] : scorecardRes;\nconst callId = $('Parse Classification').first().json.call_id;\nconst portalUrl = 'http://localhost:5173/calls/' + callId;\nconst safeScorecard = scorecard || { overall_score: null, summary: 'No scorecard generated.', strengths: [], improvements: [] };\nconst strengths = (safeScorecard.strengths || []).slice(0, 3);\nconst improvements = (safeScorecard.improvements || []).slice(0, 3);\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({ to: p.json.team_members.email, name: p.json.team_members.name || 'Team Member', overall_score: safeScorecard.overall_score, summary: safeScorecard.summary || '', strengths, improvements, portal_url: portalUrl }));\nif (emailTargets.length === 0) {\n  emailTargets.push({\n    to: 'muhammadammaralibhutta@gmail.com',\n    name: 'Admin (demo fallback)',\n    overall_score: safeScorecard.overall_score,\n    summary: safeScorecard.summary || '',\n    strengths,\n    improvements,\n    portal_url: portalUrl\n  });\n}\nreturn emailTargets.map(t => ({ json: t }));"
+        "jsCode": "const scorecardRes = $('Get Final Scorecard').first().json;\nconst scorecard = Array.isArray(scorecardRes) ? scorecardRes[0] : scorecardRes;\nconst callId = $('Parse Classification').first().json.call_id;\nconst callType = $('Parse Classification').first().json.call_type;\nconst portalUrl = 'http://localhost:5173/calls/' + callId;\nconst safe = scorecard || { overall_score: null, summary: '', strengths: [], improvements: [] };\nconst evidenceRows = (safe.scorecard_evidence || []).filter(function(e){ return e && e.criterion_key; });\nconst findingsRaw = $('Get Rule Findings').all() || [];\nconst findings = findingsRaw.map(function(f){return f.json;}).filter(function(f){return f && f.rule_key;})\n  .sort(function(a,b){ const o={critical:0,warning:1,info:2}; return (o[a.severity]||9)-(o[b.severity]||9); });\n\nfunction group(key) { return evidenceRows.filter(function(e){ return e.criterion_key === key; }).map(function(e){ return e.quote; }); }\nconst keyPoints = group('key_point');\nconst actionItems = group('action_item');\nconst decisions = group('decision');\nconst openQuestions = group('open_question');\nconst nextSteps = group('next_step');\nconst risks = group('risk');\nconst suggestions = group('suggestion');\n\nfunction humanize(k) { if (!k) return ''; return String(k).split('_').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(' '); }\nfunction scoreColor(s) { if (s===null||s===undefined) return '#64748b'; if (s>=8) return '#10b981'; if (s>=6) return '#3b82f6'; if (s>=4) return '#f59e0b'; return '#ef4444'; }\nfunction sev(s) { if (s==='critical') return {bg:'#fee2e2',fg:'#991b1b',l:'CRITICAL'}; if (s==='warning') return {bg:'#fef3c7',fg:'#92400e',l:'WARNING'}; return {bg:'#dbeafe',fg:'#1e40af',l:'INFO'}; }\n\nconst strengths = (safe.strengths || []).slice(0, 5);\nconst improvements = (safe.improvements || []).slice(0, 5);\n\nfunction critRow(item) {\n  const label = humanize(item.criterion || '');\n  const sc = typeof item.score === 'number' ? item.score : null;\n  const col = scoreColor(sc);\n  const sct = sc!==null ? sc+'/10' : '';\n  return '<tr><td style=\"padding:14px 0;border-bottom:1px solid #f1f5f9;\">' +\n    '<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;\">' +\n      '<span style=\"font-weight:600;color:#1a1a2e;font-size:14px;\">'+label+'</span>' +\n      (sc!==null?'<span style=\"background:'+col+';color:#fff;font-weight:700;font-size:12px;padding:3px 11px;border-radius:12px;\">'+sct+'</span>':'') +\n    '</div>' +\n    '<div style=\"color:#475569;font-size:13px;line-height:1.55;margin-bottom:6px;\">'+(item.description||'')+'</div>' +\n    (item.evidence_quote?'<div style=\"background:#f8fafc;border-left:3px solid #cbd5e1;padding:9px 13px;margin-top:8px;color:#475569;font-size:12px;font-style:italic;\">&ldquo;'+item.evidence_quote.substring(0,240)+'&rdquo;</div>':'') +\n  '</td></tr>';\n}\n\nfunction listSection(title, items, accent, bullet) {\n  if (!items || !items.length) return '';\n  return '<h2 style=\"color:'+accent+';font-size:13px;margin:28px 0 12px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;\">'+title+' ('+items.length+')</h2>' +\n    '<ul style=\"margin:0;padding-left:0;list-style:none;\">' +\n    items.slice(0,10).map(function(t){return '<li style=\"background:#fff;border:1px solid #e2e8f0;border-left:3px solid '+accent+';border-radius:6px;padding:11px 14px;margin-bottom:8px;color:#374151;font-size:13px;line-height:1.55;\">'+bullet+' '+t+'</li>';}).join('') +\n    '</ul>';\n}\n\nconst scoreColor1 = scoreColor(safe.overall_score);\nconst headerScore = safe.overall_score !== null && safe.overall_score !== undefined\n  ? '<div style=\"font-size:48px;font-weight:800;color:#1a1a2e;line-height:1;\">'+safe.overall_score+'<span style=\"font-size:20px;color:#64748b;font-weight:500;\"> / 10</span></div><div style=\"color:#64748b;font-size:11px;margin-top:6px;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;\">Overall call score</div>'\n  : '<div style=\"font-size:26px;font-weight:700;color:#1a1a2e;\">Meeting Analysis</div><div style=\"color:#64748b;font-size:12px;margin-top:4px;\">'+humanize(callType)+' call</div>';\n\nconst strengthsHtml = strengths.length ? '<h2 style=\"color:#16a34a;font-size:13px;margin:28px 0 4px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;\">What worked</h2><table style=\"width:100%;border-collapse:collapse;\">'+strengths.map(critRow).join('')+'</table>' : '';\nconst improvementsHtml = improvements.length ? '<h2 style=\"color:#d97706;font-size:13px;margin:28px 0 4px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;\">Coach on this next time</h2><table style=\"width:100%;border-collapse:collapse;\">'+improvements.map(critRow).join('')+'</table>' : '';\n\nconst findingsHtml = findings.length ? '<h2 style=\"color:#1a1a2e;font-size:13px;margin:28px 0 12px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;\">Rule findings ('+findings.length+')</h2>' +\n  findings.slice(0,8).map(function(f){\n    const s = sev(f.severity);\n    return '<div style=\"background:#fff;border:1px solid #e2e8f0;border-left:4px solid '+s.fg+';border-radius:6px;padding:13px 15px;margin-bottom:10px;\"><div style=\"display:flex;align-items:center;gap:8px;margin-bottom:6px;\"><span style=\"background:'+s.bg+';color:'+s.fg+';font-weight:700;font-size:10px;padding:3px 9px;border-radius:10px;letter-spacing:0.06em;\">'+s.l+'</span><span style=\"font-weight:600;color:#1a1a2e;font-size:13px;\">'+humanize(f.rule_key)+'</span></div><div style=\"color:#475569;font-size:13px;line-height:1.55;\">'+((f.value && f.value.suggestion) || '')+'</div></div>';\n  }).join('') : '';\n\nconst html = '<div style=\"font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:680px;margin:0 auto;background:#f8fafc;padding:24px 0;\">' +\n  '<div style=\"background:#1a1a2e;padding:30px 36px;border-radius:14px 14px 0 0;\">' +\n    '<h1 style=\"color:#fff;margin:0;font-size:22px;font-weight:700;letter-spacing:-0.01em;\">WeBuildTrades Call Analyzer</h1>' +\n    '<p style=\"color:#94a3b8;margin:6px 0 0;font-size:13px;\">'+humanize(callType)+' call analysis &middot; AI-generated coaching feedback</p>' +\n  '</div>' +\n  '<div style=\"background:#fff;padding:34px 36px;border:1px solid #e2e8f0;border-top:0;\">' +\n    '<p style=\"color:#334155;font-size:15px;margin:0 0 22px;\">Hi Admin,</p>' +\n    '<div style=\"background:#f1f5f9;border-left:4px solid '+scoreColor1+';padding:20px 26px;border-radius:0 8px 8px 0;margin-bottom:26px;\">'+headerScore+'</div>' +\n    (safe.executive_summary ? '<h2 style=\"color:#1a1a2e;font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;\">Executive Summary</h2><p style=\"color:#475569;font-size:14px;line-height:1.7;margin:0 0 8px;\">'+safe.executive_summary+'</p>' : '') +\n    listSection('Key Points', keyPoints, '#1a1a2e', '&#9679;') +\n    listSection('Decisions Made', decisions, '#3b82f6', '&#10003;') +\n    listSection('Action Items', actionItems, '#d97706', '&#9656;') +\n    listSection('Open Questions', openQuestions, '#8b5cf6', '?') +\n    listSection('Next Steps', nextSteps, '#10b981', '&rarr;') +\n    listSection('Risks', risks, '#ef4444', '&#9888;') +\n    listSection('Suggestions', suggestions, '#0891b2', '&#9788;') +\n    strengthsHtml + improvementsHtml + findingsHtml +\n    '<div style=\"margin-top:34px;padding-top:24px;border-top:1px solid #e2e8f0;text-align:center;\">' +\n      '<a href=\"'+portalUrl+'\" style=\"background:#1a1a2e;color:#fff;padding:14px 40px;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;display:inline-block;\">View Full Report &rarr;</a>' +\n      '<p style=\"color:#94a3b8;font-size:12px;margin:14px 0 0;\">Open the portal for the full transcript and historical trends.</p>' +\n    '</div>' +\n  '</div>' +\n  '<div style=\"padding:18px 36px;text-align:center;\">' +\n    '<p style=\"color:#94a3b8;font-size:11px;margin:0;\">'+keyPoints.length+' key points &middot; '+actionItems.length+' action items &middot; '+decisions.length+' decisions &middot; '+findings.length+' rule findings</p>' +\n  '</div>' +\n'</div>';\n\nreturn [{ json: {\n  to: 'muhammadammaralibhutta@gmail.com',\n  subject: 'Call Analysis: ' + humanize(callType) + ' &mdash; ' + (safe.overall_score !== null && safe.overall_score !== undefined ? safe.overall_score+'/10' : (actionItems.length + ' action items')),\n  html: html,\n  portal_url: portalUrl,\n  call_id: callId\n} }];"
       }
     },
     {
@@ -601,11 +951,28 @@
       "name": "Has Recipients?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [4820, 300],
+      "position": [
+        4820,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-recip", "leftValue": "={{ $json.__no_recipients || $json.__no_scorecard }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-recip",
+              "leftValue": "={{ $json.__no_recipients || $json.__no_scorecard }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
           "combinator": "and"
         }
       }
@@ -615,11 +982,14 @@
       "name": "Send Email",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
-      "position": [5040, 200],
+      "position": [
+        5040,
+        200
+      ],
       "parameters": {
         "sendTo": "={{ $json.to }}",
-        "subject": "=WeBuildTrades Call Scorecard — {{ $json.name }}: {{ $json.overall_score !== null && $json.overall_score !== undefined ? $json.overall_score + '/10' : 'Meeting Summary' }}",
-        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#f8fafc;\"><div style=\"background:#1a1a2e;padding:24px 32px;border-radius:12px 12px 0 0;\"><h1 style=\"color:#fff;margin:0;font-size:20px;font-weight:700;\">WeBuildTrades Call Analyzer</h1><p style=\"color:#94a3b8;margin:4px 0 0;font-size:13px;\">Automated coaching feedback</p></div><div style=\"background:#fff;padding:28px 32px;border:1px solid #e2e8f0;\"><p style=\"color:#334155;font-size:15px;margin:0 0 20px;\">Hi {{ $json.name }},</p><div style=\"background:#f1f5f9;border-left:4px solid #1d4ed8;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px;\"><div style=\"font-size:28px;font-weight:800;color:#1a1a2e;\">{{ $json.overall_score !== null && $json.overall_score !== undefined ? $json.overall_score + ' / 10' : 'Meeting Summary' }}</div><div style=\"color:#64748b;font-size:13px;margin-top:4px;\">{{ $json.overall_score !== null && $json.overall_score !== undefined ? 'Overall call score' : 'Internal team call' }}</div></div><p style=\"color:#475569;font-size:14px;line-height:1.6;margin-bottom:24px;\">{{ $json.summary }}</p>{{ ($json.strengths || []).length > 0 ? '<h3 style=\"color:#16a34a;font-size:15px;margin:0 0 12px;border-top:1px solid #f1f5f9;padding-top:20px;\">Strengths</h3><ul style=\"margin:0 0 20px;padding-left:20px;\">' + ($json.strengths || []).slice(0,3).map(s => '<li style=\"color:#374151;font-size:14px;margin-bottom:8px;\"><strong>' + (s.criterion || s.point || '') + '</strong>' + (s.description ? ': ' + s.description : '') + '</li>').join('') + '</ul>' : '' }}{{ ($json.improvements || []).length > 0 ? '<h3 style=\"color:#d97706;font-size:15px;margin:0 0 12px;border-top:1px solid #f1f5f9;padding-top:20px;\">Areas to Improve</h3><ul style=\"margin:0 0 20px;padding-left:20px;\">' + ($json.improvements || []).slice(0,3).map(i => '<li style=\"color:#374151;font-size:14px;margin-bottom:8px;\"><strong>' + (i.criterion || i.area || '') + '</strong>' + (i.description || i.suggestion ? ': ' + (i.description || i.suggestion) : '') + '</li>').join('') + '</ul>' : '' }}<div style=\"margin-top:28px;text-align:center;\"><a href=\"{{ $json.portal_url }}\" style=\"background:#1a1a2e;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;display:inline-block;\">View Full Report</a></div></div><div style=\"padding:16px 32px;text-align:center;\"><p style=\"color:#94a3b8;font-size:11px;margin:0;\">Generated by WeBuildTrades Call Analyzer</p></div></div>",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
         "options": {
           "appendAttribution": false
         }
@@ -636,11 +1006,16 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [5260, 300],
+      "position": [
+        5260,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"ok\": true, \"call_id\": \"{{ $('Parse Classification').first().json.call_id }}\", \"call_type\": \"{{ $('Parse Classification').first().json.call_type }}\" }",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -648,81 +1023,748 @@
       "name": "Respond 200 Duplicate",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1080, 460],
+      "position": [
+        1080,
+        460
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"ok\": true, \"duplicate\": true }",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
+    },
+    {
+      "id": "master-0036",
+      "name": "Get Rule Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        4500,
+        500
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "method": "GET",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rule_findings",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "call_id",
+              "value": "=eq.{{ $('Parse Classification').first().json.call_id }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "severity.asc"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0037",
+      "name": "Compute Department",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3290,
+        60
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const map = {\n  executive: '00000000-0000-0000-0000-000000000010',\n  exec: '00000000-0000-0000-0000-000000000010',\n  sales: '00000000-0000-0000-0000-000000000001',\n  seo: '00000000-0000-0000-0000-000000000011',\n  ops: '00000000-0000-0000-0000-000000000012',\n  operations: '00000000-0000-0000-0000-000000000012',\n  ai: '00000000-0000-0000-0000-000000000012',\n  finance: '00000000-0000-0000-0000-000000000013',\n  content: '00000000-0000-0000-0000-000000000014',\n  marketing: '00000000-0000-0000-0000-000000000014'\n};\nconst s = ($('Parse Meeting Summary').first().json.summary) || {};\nconst slug = String(s.host_department || 'ops').toLowerCase().trim();\nconst departmentId = map[slug] || map.ops;\nconst callId = $('Parse Classification').first().json.call_id;\n\nconst NL = String.fromCharCode(10);\nconst title = s.meeting_title || '';\nconst oneLine = s.one_line_summary || '';\nconst exec = s.executive_summary || '';\nconst outcome = s.meeting_outcome || '';\nlet combinedSummary = '';\nif (title) combinedSummary += title;\nif (title && oneLine) combinedSummary += '. ';\nif (oneLine) combinedSummary += oneLine;\nif (exec) combinedSummary += NL + NL + exec;\nif (outcome) combinedSummary += NL + NL + 'Outcome: ' + outcome;\n\nconst scorecardBody = {\n  call_id: callId,\n  rubric_id: '00000000-0000-0000-0000-000000000002',\n  overall_score: null,\n  summary: combinedSummary,\n  strengths: (s.key_points || []).map(function(p){ return { point: p }; }),\n  improvements: s.suggestions || [],\n  llm_model: 'llama-3.3-70b-versatile'\n};\n\nreturn [{ json: { call_id: callId, department_id: departmentId, department_slug: slug, scorecard_body: scorecardBody } }];"
+      }
+    },
+    {
+      "id": "master-0037b",
+      "name": "Patch Department",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        3460,
+        60
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.call_id }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ department_id: $json.department_id }) }}",
+        "options": {}
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "master-0038",
+      "name": "Compute Department (Sales)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3290,
+        400
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const map = {\n  executive: '00000000-0000-0000-0000-000000000010',\n  exec: '00000000-0000-0000-0000-000000000010',\n  sales: '00000000-0000-0000-0000-000000000001',\n  seo: '00000000-0000-0000-0000-000000000011',\n  ops: '00000000-0000-0000-0000-000000000012',\n  operations: '00000000-0000-0000-0000-000000000012',\n  ai: '00000000-0000-0000-0000-000000000012',\n  finance: '00000000-0000-0000-0000-000000000013',\n  content: '00000000-0000-0000-0000-000000000014',\n  marketing: '00000000-0000-0000-0000-000000000014'\n};\nconst sc = $('Parse Scorecard').first().json;\nconst slug = String(sc.host_department || 'sales').toLowerCase().trim();\nconst departmentId = map[slug] || map.sales;\nconst scorecardBody = {\n  call_id: sc.call_id,\n  rubric_id: sc.rubric_id,\n  overall_score: sc.overall_score,\n  summary: sc.summary,\n  strengths: sc.strengths,\n  improvements: sc.improvements,\n  llm_model: sc.llm_model\n};\nreturn [{ json: { call_id: sc.call_id, department_id: departmentId, department_slug: slug, scorecard_body: scorecardBody } }];"
+      }
+    },
+    {
+      "id": "master-0038b",
+      "name": "Patch Department (Sales)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        3460,
+        400
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.call_id }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ department_id: $json.department_id }) }}",
+        "options": {}
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "master-0022c",
+      "name": "70B Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-success",
+              "leftValue": "={{ $json.choices && $json.choices[0] && $json.choices[0].message ? true : false }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "master-0022b",
+      "name": "Generate Meeting Summary (8B)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2180,
+        240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "options": {
+          "timeout": 120000
+        },
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'llama-3.1-8b-instant', max_tokens: 5000, messages: [ { role: 'system', content: 'You are extracting structured business intelligence from a meeting transcript. Your job is COMPLETENESS, not summarization. Be exhaustive. CRITICAL RULES - VIOLATING ANY OF THESE PRODUCES UNUSABLE OUTPUT: 1. EXTRACT EVERYTHING. If the transcript has 12 action items, list ALL 12. Do NOT consolidate similar items. Do NOT skip minor ones. Do NOT generalize. 2. USE THE EXACT WORDS. Every action_item, decision, key_point MUST use phrasing from the transcript. NEVER write generic phrases like \\\"continue development\\\" or \\\"review and provide feedback\\\" - quote what was actually said. 3. NAME REAL PEOPLE. Use the actual attendee names from the attendee list provided. NEVER invent roles like \\\"Senior Meeting Analyst\\\". Use the role you can infer from the transcript (e.g. Founder, AI Lead, Sales Manager, Operations). If unsure, use \\\"Team Member\\\". 4. ASSIGN DEPARTMENTS CORRECTLY by keyword:    - sales / sales calls / prospects / leads / closing / proposal -> sales    - SEO / blog / website / search / Kool -> seo    - content / social media / video / Cameron / images / posts -> content    - finance / budget / revenue / cost -> finance    - operations / infrastructure / apps / Zain / AI projects / automation -> ops    - strategy / pause WeBuildTrades / vision / business model / Daniel-led decisions -> executive 5. NO SHORTCUTS. If you find yourself writing \\\"continue\\\" or \\\"review\\\" or \\\"explore\\\" - STOP and re-read the transcript for the specific action mentioned. 6. RISKS must be from the transcript. Do NOT invent generic risks like \\\"may not deliver on time\\\". Only include risks that someone in the call actually raised. 7. BANNED PHRASES must be ACTUAL occurrences in the transcript. Search for: mate, basically, essentially, obviously, you know, sort of, kind of, honestly, literally, um, uh. List each one ACTUALLY USED (not the rule description). Return ONLY valid JSON with these keys: meeting_title (specific 5-10 word title naming the actual subject), one_line_summary (one clear sentence of the main outcome), executive_summary (5-8 sentences of flowing prose: who attended, topics covered in order, what was decided and by whom, what the outcome was, what happens next), meeting_outcome (1-2 sentences explicitly describing what CHANGED because of this meeting - what is the team going to do that they were not before), host_department (one of: executive, sales, seo, ops, finance, content), attendees (array of {name, role, is_internal} - use real names from attendee list), key_points (array of 8-15+ specific topics actually discussed - quote the substance), projects_discussed (array of {name, status (delivered|in_progress|paused|proposed|blocked), owner, department (use the dept rule above), summary (1-2 sentences of what was said about it), next_action}), decisions_made (array of {decision, decided_by, context, impact} - extract EVERY decision, including small ones), action_items (array of {task, owner, due, priority (high|medium|low), context} - quote-anchored. If 12 actions in transcript, return 12 entries), open_questions (array of strings - questions raised but not resolved), next_steps (array of strings - concrete things to happen after this meeting), risks (array of {risk, severity (high|medium|low), area} - only ACTUAL risks raised, not generic), suggestions (array of {suggestion, suggested_by, value}), banned_phrases_observed (array of strings - each ACTUAL usage in the transcript, formatted as \\\"<phrase> (<context fragment>)\\\")' }, { role: 'user', content: 'Attendees:\\n' + JSON.stringify((($('Verify HMAC').first().json.body.attendees) || []).map(function(a){return {name:a.name, email:a.email};})) + '\\n\\nDuration: ' + (($('Verify HMAC').first().json.body.duration) || 0) + ' seconds\\n\\nFULL TRANSCRIPT (read every line, extract EVERYTHING actionable):\\n\\n' + (($('Verify HMAC').first().json.body.transcript || {}).full_transcript || 'No transcript.') + '\\n\\n---\\nReminder: EXTRACT EVERYTHING. No summarization. Quote-anchored.' } ] }) }}"
+      },
+      "retryOnFail": false,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true,
+      "alwaysOutputData": true
     }
   ],
   "connections": {
-    "Fathom Webhook": { "main": [[{ "node": "Verify HMAC", "type": "main", "index": 0 }]] },
-    "Verify HMAC": { "main": [[{ "node": "Check Duplicate", "type": "main", "index": 0 }]] },
-    "Check Duplicate": { "main": [[{ "node": "Count Duplicates", "type": "main", "index": 0 }]] },
-    "Count Duplicates": { "main": [[{ "node": "Is Duplicate?", "type": "main", "index": 0 }]] },
-    "Is Duplicate?": {
+    "Fathom Webhook": {
       "main": [
-        [{ "node": "Insert Call", "type": "main", "index": 0 }],
-        [{ "node": "Respond 200 Duplicate", "type": "main", "index": 0 }]
-      ]
-    },
-    "Insert Call": { "main": [[{ "node": "Classify with Groq", "type": "main", "index": 0 }]] },
-    "Classify with Groq": { "main": [[{ "node": "Parse Classification", "type": "main", "index": 0 }]] },
-    "Parse Classification": { "main": [[{ "node": "Update Call Type", "type": "main", "index": 0 }]] },
-    "Update Call Type": { "main": [[{ "node": "Is Team Call?", "type": "main", "index": 0 }]] },
-    "Is Team Call?": {
-      "main": [
-        [{ "node": "Generate Meeting Summary", "type": "main", "index": 0 }],
         [
-          { "node": "Get Active Rubric", "type": "main", "index": 0 },
-          { "node": "Get Call Data", "type": "main", "index": 0 }
+          {
+            "node": "Verify HMAC",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
-    "Get Active Rubric": { "main": [[{ "node": "Run Rules", "type": "main", "index": 0 }]] },
-    "Get Call Data": { "main": [[{ "node": "Run Rules", "type": "main", "index": 0 }]] },
-    "Run Rules": { "main": [[{ "node": "Has Findings?", "type": "main", "index": 0 }]] },
+    "Verify HMAC": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Count Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Insert Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Call": {
+      "main": [
+        [
+          {
+            "node": "Classify with Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify with Groq": {
+      "main": [
+        [
+          {
+            "node": "Parse Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Classification": {
+      "main": [
+        [
+          {
+            "node": "Update Call Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Call Type": {
+      "main": [
+        [
+          {
+            "node": "Is Team Call?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Team Call?": {
+      "main": [
+        [
+          {
+            "node": "Generate Meeting Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Active Rubric",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Rubric": {
+      "main": [
+        [
+          {
+            "node": "Get Call Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Call Data": {
+      "main": [
+        [
+          {
+            "node": "Run Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Rules": {
+      "main": [
+        [
+          {
+            "node": "Has Findings?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Has Findings?": {
       "main": [
-        [{ "node": "Build Findings Array", "type": "main", "index": 0 }],
-        [{ "node": "Score with Groq", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Build Findings Array",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Score with Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Build Findings Array": { "main": [[{ "node": "Insert Rule Findings", "type": "main", "index": 0 }]] },
-    "Insert Rule Findings": { "main": [[{ "node": "Score with Groq", "type": "main", "index": 0 }]] },
-    "Score with Groq": { "main": [[{ "node": "Parse Scorecard", "type": "main", "index": 0 }]] },
-    "Parse Scorecard": { "main": [[{ "node": "Insert Scorecard", "type": "main", "index": 0 }]] },
-    "Insert Scorecard": { "main": [[{ "node": "Build Evidence Array", "type": "main", "index": 0 }]] },
-    "Build Evidence Array": { "main": [[{ "node": "Has Evidence?", "type": "main", "index": 0 }]] },
+    "Build Findings Array": {
+      "main": [
+        [
+          {
+            "node": "Insert Rule Findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Rule Findings": {
+      "main": [
+        [
+          {
+            "node": "Score with Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score with Groq": {
+      "main": [
+        [
+          {
+            "node": "Parse Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Compute Department (Sales)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Build Evidence Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Evidence Array": {
+      "main": [
+        [
+          {
+            "node": "Has Evidence?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Has Evidence?": {
       "main": [
-        [{ "node": "Insert Evidence", "type": "main", "index": 0 }],
-        [{ "node": "Update Call Scored", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Insert Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Call Scored",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Insert Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
-    "Generate Meeting Summary": { "main": [[{ "node": "Parse Meeting Summary", "type": "main", "index": 0 }]] },
-    "Parse Meeting Summary": { "main": [[{ "node": "Store Meeting Scorecard", "type": "main", "index": 0 }]] },
-    "Store Meeting Scorecard": { "main": [[{ "node": "Store Meeting Evidence", "type": "main", "index": 0 }]] },
-    "Store Meeting Evidence": { "main": [[{ "node": "Insert Meeting Evidence", "type": "main", "index": 0 }]] },
-    "Insert Meeting Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
-    "Update Call Scored": {
-      "main": [[
-        { "node": "Get Participants", "type": "main", "index": 0 },
-        { "node": "Get Final Scorecard", "type": "main", "index": 0 }
-      ]]
+    "Insert Evidence": {
+      "main": [
+        [
+          {
+            "node": "Update Call Scored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Get Participants": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
-    "Get Final Scorecard": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
-    "Build Email List": { "main": [[{ "node": "Has Recipients?", "type": "main", "index": 0 }]] },
+    "Generate Meeting Summary": {
+      "main": [
+        [
+          {
+            "node": "70B Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Meeting Summary": {
+      "main": [
+        [
+          {
+            "node": "Compute Department",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Meeting Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Store Meeting Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Meeting Evidence": {
+      "main": [
+        [
+          {
+            "node": "Insert Meeting Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Meeting Evidence": {
+      "main": [
+        [
+          {
+            "node": "Update Call Scored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Call Scored": {
+      "main": [
+        [
+          {
+            "node": "Get Participants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Participants": {
+      "main": [
+        [
+          {
+            "node": "Get Final Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Final Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Get Rule Findings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email List": {
+      "main": [
+        [
+          {
+            "node": "Has Recipients?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Has Recipients?": {
       "main": [
-        [{ "node": "Send Email", "type": "main", "index": 0 }],
-        [{ "node": "Respond 200", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Send Email": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Rule Findings": {
+      "main": [
+        [
+          {
+            "node": "Build Email List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Department": {
+      "main": [
+        [
+          {
+            "node": "Patch Department",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patch Department": {
+      "main": [
+        [
+          {
+            "node": "Store Meeting Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Department (Sales)": {
+      "main": [
+        [
+          {
+            "node": "Patch Department (Sales)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patch Department (Sales)": {
+      "main": [
+        [
+          {
+            "node": "Insert Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "70B Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Parse Meeting Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Meeting Summary (8B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Meeting Summary (8B)": {
+      "main": [
+        [
+          {
+            "node": "Parse Meeting Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "6EjuooypZ54jgqTc"
+  }
 }

@@ -5,6 +5,11 @@ export default {
   theme: {
     extend: {
       colors: {
+        border: 'hsl(var(--border))',
+        input:  'hsl(var(--input))',
+        ring:   'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground:  'hsl(var(--foreground))',
         brand: {
           DEFAULT: '#1a1a2e',
           50:  '#f0f0f8',
