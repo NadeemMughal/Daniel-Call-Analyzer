@@ -1,11 +1,12 @@
+﻿import os
 #!/usr/bin/env python3
 """Upgrade the master pipeline to extract full meeting intelligence + scoring."""
 import json
 import urllib.request
 
 WORKFLOW_PATH = 'n8n/workflows/00-master-pipeline.json'
-N8N_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YTE2ODM3Ni0yMDlmLTRkNGMtODgyYi1kZGI4NzlkZDRjNjIiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMTA0YzEwZTUtNGQ1NC00Zjg5LThhY2YtZjhhZTA0OTYwMDhjIiwiaWF0IjoxNzc4MjQyMTAyLCJleHAiOjE3ODA3OTA0MDB9.aMdMCODnGUjCX2Lk8v5F1ufxTYfdlPz2BJY1gZt6MmI"
-SVC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+N8N_KEY = os.environ.get("N8N_API_KEY", "")
+SVC_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 WF_ID = 'Z1WdzpBv7u1DjB2L'
 
 with open(WORKFLOW_PATH, 'r', encoding='utf-8') as f:

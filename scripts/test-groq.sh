@@ -28,7 +28,7 @@ PYEOF
 
 echo "=== Classifier output ==="
 curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
-  -H "Authorization: Bearer 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" \
+  -H "Authorization: Bearer ${GROQ_API_KEY}" \
   -H "Content-Type: application/json" \
   -d @/tmp/groq-classify.json \
   | python3 -c "import sys, json; d = json.load(sys.stdin); print(d['choices'][0]['message']['content']); print(); print('Usage:', d.get('usage'))"

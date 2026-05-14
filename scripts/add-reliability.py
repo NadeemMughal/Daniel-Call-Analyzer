@@ -1,3 +1,4 @@
+﻿import os
 #!/usr/bin/env python3
 """Phase A reliability:
   A2 - import the 99-error-handler workflow into n8n, capture its ID
@@ -12,7 +13,7 @@ WORKFLOW_PATH = 'n8n/workflows/00-master-pipeline.json'
 ERROR_WF_PATH = 'n8n/workflows/99-error-handler.json'
 MASTER_WF_ID = 'Z1WdzpBv7u1DjB2L'
 N8N_BASE = 'https://n8nserver.metaviz.pro/api/v1'
-N8N_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4YTE2ODM3Ni0yMDlmLTRkNGMtODgyYi1kZGI4NzlkZDRjNjIiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMTA0YzEwZTUtNGQ1NC00Zjg5LThhY2YtZjhhZTA0OTYwMDhjIiwiaWF0IjoxNzc4MjQyMTAyLCJleHAiOjE3ODA3OTA0MDB9.aMdMCODnGUjCX2Lk8v5F1ufxTYfdlPz2BJY1gZt6MmI"
+N8N_KEY = os.environ.get("N8N_API_KEY", "")
 
 
 def call_n8n(method, path, body=None):
