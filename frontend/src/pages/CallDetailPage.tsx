@@ -8,7 +8,7 @@ import {
   ChevronLeft, Quote, AlertTriangle, CheckCircle2, TrendingUp,
   Clock, Users, Target, AlertCircle, ListChecks, GitBranch,
   HelpCircle, ArrowRight, Lightbulb, ShieldAlert, MessageSquare,
-  Box, UserCircle, Ban
+  Box, UserCircle, Ban, Mic, Star, Zap, BarChart2
 } from 'lucide-react'
 
 const CALL_TYPE_TINT: Record<string, string> = {
@@ -133,6 +133,22 @@ export default function CallDetailPage() {
   const meetingPhase = (group('meeting_phase')[0] || '').trim().toLowerCase()
   const phaseLabel = meetingPhase ? (PHASE_LABELS[meetingPhase] || meetingPhase.replace(/_/g, ' ')) : null
 
+  // New enriched evidence
+  const talkTimeRaw = group('talk_time_breakdown')[0]
+  const talkTimeBreakdown: Array<{ speaker: string; seconds: number; percentage: number }> = talkTimeRaw ? (() => { try { return JSON.parse(talkTimeRaw) } catch { return [] } })() : []
+
+  const coachingPriorities: Array<{ priority: number; area: string; what_happened: string; what_to_do_instead: string; impact: string }> = [1, 2, 3]
+    .map(n => group('coaching_priority_' + n)[0])
+    .filter(Boolean)
+    .map(q => { try { return JSON.parse(q) } catch { return null } })
+    .filter(Boolean)
+
+  const meetingEffectivenessRaw = group('meeting_effectiveness')[0]
+  const meetingEffectiveness: { score: number; agenda_clarity: string; decisions_ratio: string; action_coverage: string; focus_score: number; summary: string } | null = meetingEffectivenessRaw ? (() => { try { return JSON.parse(meetingEffectivenessRaw) } catch { return null } })() : null
+
+  const isSalesCall = ['discovery', 'ads_intro', 'launch', 'follow_up'].includes(call.call_type || '')
+  const isTeamCall = call.call_type === 'team'
+
   const criticalCount = findings.filter(f => f.severity === 'critical').length
   const warningCount = findings.filter(f => f.severity === 'warning').length
 
@@ -226,6 +242,27 @@ export default function CallDetailPage() {
       {/* MEETING INTELLIGENCE */}
       {tab === 'intelligence' && (
         <div className="grid md:grid-cols-2 gap-4">
+          {/* Talk Time Bar — full width */}
+          {talkTimeBreakdown.length > 0 && (
+            <div className="md:col-span-2">
+              <TalkTimeCard breakdown={talkTimeBreakdown} />
+            </div>
+          )}
+
+          {/* Meeting Effectiveness (team calls) */}
+          {isTeamCall && meetingEffectiveness && (
+            <div className="md:col-span-2">
+              <MeetingEffectivenessCard data={meetingEffectiveness} />
+            </div>
+          )}
+
+          {/* Coaching Priorities (sales calls) */}
+          {isSalesCall && coachingPriorities.length > 0 && (
+            <div className="md:col-span-2">
+              <CoachingPrioritiesCard priorities={coachingPriorities} />
+            </div>
+          )}
+
           {/* Attendees full-width if present */}
           {attendees.length > 0 && (
             <div className="md:col-span-2">
@@ -240,7 +277,7 @@ export default function CallDetailPage() {
           )}
           <ListCard title="Key Points" icon={ListChecks} accent="text-white" border="border-[hsl(222,32%,18%)]" items={keyPoints} bullet="●" />
           <ListCard title="Decisions Made" icon={GitBranch} accent="text-blue-400" border="border-blue-500/30" items={decisions} bullet="✓" />
-          <ListCard title="Action Items" icon={ArrowRight} accent="text-amber-400" border="border-amber-500/30" items={actionItems} bullet="▸" />
+          <ActionItemsCard items={actionItems} />
           <ListCard title="Open Questions" icon={HelpCircle} accent="text-purple-400" border="border-purple-500/30" items={openQuestions} bullet="?" />
           <ListCard title="Next Steps" icon={Target} accent="text-emerald-400" border="border-emerald-500/30" items={nextSteps} bullet="→" />
           <ListCard title="Risks & Flags" icon={ShieldAlert} accent="text-red-400" border="border-red-500/30" items={risks} bullet="⚠" />
@@ -407,6 +444,175 @@ function StatTile({ icon: Icon, label, value, valueClass = 'text-white' }: any) 
         <Icon className="w-3 h-3" /> {label}
       </div>
       <div className={`text-xl font-bold ${valueClass}`}>{value}</div>
+    </div>
+  )
+}
+
+const SPEAKER_COLORS = [
+  'bg-blue-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500',
+]
+const SPEAKER_TEXT = [
+  'text-blue-400', 'text-emerald-400', 'text-violet-400', 'text-amber-400', 'text-rose-400', 'text-cyan-400',
+]
+
+function TalkTimeCard({ breakdown }: { breakdown: Array<{ speaker: string; seconds: number; percentage: number }> }) {
+  const sorted = [...breakdown].sort((a, b) => b.percentage - a.percentage)
+  return (
+    <div className="card border-t-2 border-blue-500/30 p-5">
+      <h2 className="flex items-center gap-2 text-blue-400 font-semibold text-xs uppercase tracking-wider mb-4">
+        <Mic className="w-4 h-4" /> Talk Time
+        <span className="text-gray-600 ml-auto font-mono text-xs">{sorted.length} speakers</span>
+      </h2>
+      {/* Stacked bar */}
+      <div className="w-full h-3 rounded-full overflow-hidden flex mb-4">
+        {sorted.map((s, i) => (
+          <div key={s.speaker} className={`${SPEAKER_COLORS[i % SPEAKER_COLORS.length]} h-full transition-all`} style={{ width: `${s.percentage}%` }} title={`${s.speaker}: ${s.percentage}%`} />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-4">
+        {sorted.map((s, i) => (
+          <div key={s.speaker} className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${SPEAKER_COLORS[i % SPEAKER_COLORS.length]}`} />
+            <span className={`text-sm font-medium ${SPEAKER_TEXT[i % SPEAKER_TEXT.length]}`}>{s.speaker}</span>
+            <span className="text-xs text-gray-500">{s.percentage}%</span>
+            <span className="text-xs text-gray-600">({Math.floor(s.seconds / 60)}m {s.seconds % 60}s)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MeetingEffectivenessCard({ data }: { data: { score: number; agenda_clarity: string; decisions_ratio: string; action_coverage: string; focus_score: number; summary: string } }) {
+  const scoreColor = data.score >= 8 ? 'text-emerald-400' : data.score >= 6 ? 'text-blue-400' : data.score >= 4 ? 'text-amber-400' : 'text-red-400'
+  return (
+    <div className="card border-t-2 border-violet-500/30 p-5">
+      <div className="flex items-start justify-between mb-4">
+        <h2 className="flex items-center gap-2 text-violet-400 font-semibold text-xs uppercase tracking-wider">
+          <BarChart2 className="w-4 h-4" /> Meeting Effectiveness
+        </h2>
+        <div className="flex items-baseline gap-1">
+          <span className={`text-2xl font-bold ${scoreColor}`}>{data.score}</span>
+          <span className="text-gray-600 text-sm">/10</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-[hsl(222,47%,5%)] rounded-lg p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Agenda</p>
+          <p className="text-xs text-gray-300 leading-relaxed">{data.agenda_clarity}</p>
+        </div>
+        <div className="bg-[hsl(222,47%,5%)] rounded-lg p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Decisions</p>
+          <p className="text-xs text-gray-300 leading-relaxed">{data.decisions_ratio}</p>
+        </div>
+        <div className="bg-[hsl(222,47%,5%)] rounded-lg p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Action Coverage</p>
+          <p className="text-xs text-gray-300 leading-relaxed">{data.action_coverage}</p>
+        </div>
+        <div className="bg-[hsl(222,47%,5%)] rounded-lg p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Focus Score</p>
+          <p className="text-xs text-gray-300 leading-relaxed">{data.focus_score}/10</p>
+        </div>
+      </div>
+      {data.summary && (
+        <p className="text-[13px] text-gray-400 leading-relaxed border-t border-[hsl(222,32%,18%)] pt-3">{data.summary}</p>
+      )}
+    </div>
+  )
+}
+
+const PRIORITY_BADGE: Record<number, { bg: string; text: string; label: string }> = {
+  1: { bg: 'bg-red-500/15', text: 'text-red-400', label: '#1 Priority' },
+  2: { bg: 'bg-amber-500/15', text: 'text-amber-400', label: '#2 Priority' },
+  3: { bg: 'bg-blue-500/15', text: 'text-blue-400', label: '#3 Priority' },
+}
+
+function CoachingPrioritiesCard({ priorities }: { priorities: Array<{ priority: number; area: string; what_happened: string; what_to_do_instead: string; impact: string }> }) {
+  return (
+    <div className="card border-t-2 border-amber-500/30 p-5">
+      <h2 className="flex items-center gap-2 text-amber-400 font-semibold text-xs uppercase tracking-wider mb-4">
+        <Star className="w-4 h-4" /> Coaching Priorities
+        <span className="text-gray-600 ml-auto font-mono text-xs">{priorities.length} focus areas</span>
+      </h2>
+      <div className="space-y-4">
+        {priorities.map((p, i) => {
+          const badge = PRIORITY_BADGE[p.priority] || PRIORITY_BADGE[1]
+          return (
+            <div key={i} className="border border-[hsl(222,32%,18%)] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${badge.bg} ${badge.text}`}>{badge.label}</span>
+                <span className="text-sm font-semibold text-white">{p.area?.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
+              </div>
+              {p.what_happened && (
+                <div className="bg-[hsl(222,47%,5%)] border-l-2 border-red-500/40 rounded-r px-3 py-2 mb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">What happened</p>
+                  <p className="text-xs text-gray-400 italic">"{p.what_happened}"</p>
+                </div>
+              )}
+              {p.what_to_do_instead && (
+                <div className="bg-emerald-500/5 border-l-2 border-emerald-500/40 rounded-r px-3 py-2 mb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 mb-1">Do this instead</p>
+                  <p className="text-xs text-emerald-300 leading-relaxed">{p.what_to_do_instead}</p>
+                </div>
+              )}
+              {p.impact && (
+                <div className="flex items-start gap-1.5">
+                  <Zap className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-gray-500 leading-relaxed">{p.impact}</p>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+const ACTION_PRIORITY_STYLE: Record<string, { bg: string; text: string }> = {
+  HIGH:   { bg: 'bg-red-500/15',   text: 'text-red-400' },
+  MEDIUM: { bg: 'bg-amber-500/15', text: 'text-amber-400' },
+  LOW:    { bg: 'bg-gray-500/15',  text: 'text-gray-400' },
+}
+
+function ActionItemsCard({ items }: { items: string[] }) {
+  return (
+    <div className="card border-t-2 border-amber-500/30 p-5">
+      <h2 className="flex items-center gap-2 text-amber-400 font-semibold text-xs uppercase tracking-wider mb-4">
+        <ArrowRight className="w-4 h-4" /> Action Items
+        <span className="text-gray-600 ml-auto font-mono text-xs">{items.length}</span>
+      </h2>
+      {items.length === 0 ? (
+        <p className="text-gray-600 text-xs italic">None identified.</p>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((item, i) => {
+            const priorityMatch = item.match(/\[(HIGH|MEDIUM|LOW)\]/i)
+            const priority = priorityMatch ? priorityMatch[1].toUpperCase() : null
+            const ownerMatch = item.match(/- Owner: ([^-\[]+)/)
+            const owner = ownerMatch ? ownerMatch[1].trim() : null
+            const dueMatch = item.match(/- Due: ([^-\[]+)/)
+            const due = dueMatch ? dueMatch[1].trim() : null
+            const task = item.split(' - Owner:')[0].split(' - Due:')[0].trim()
+            const ps = priority ? ACTION_PRIORITY_STYLE[priority] : null
+            return (
+              <li key={i} className="border border-[hsl(222,32%,18%)] rounded-lg px-3 py-2.5">
+                <div className="flex items-start gap-2 mb-1.5">
+                  <span className="text-amber-400 font-bold shrink-0 mt-0.5">▸</span>
+                  <span className="text-[13px] text-gray-200 leading-relaxed flex-1">{task}</span>
+                  {ps && priority && <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 ${ps.bg} ${ps.text}`}>{priority}</span>}
+                </div>
+                {(owner || due) && (
+                  <div className="flex items-center gap-3 ml-5 mt-1">
+                    {owner && <span className="text-[11px] text-blue-400">👤 {owner}</span>}
+                    {due && <span className="text-[11px] text-gray-500">📅 {due}</span>}
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
