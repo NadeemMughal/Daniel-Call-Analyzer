@@ -4,6 +4,20 @@
 
 Part of the broader **Command HQ** platform; intended to be white-labeled later as part of **Agency Disrupt**.
 
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System overview, data flow diagrams, design decisions |
+| [docs/SETUP.md](docs/SETUP.md) | Local and production setup guide |
+| [docs/N8N_WORKFLOWS.md](docs/N8N_WORKFLOWS.md) | Workflow-by-workflow reference with node maps |
+| [docs/SUPABASE_SCHEMA.md](docs/SUPABASE_SCHEMA.md) | Full table + RPC function reference |
+| [docs/DASHBOARD.md](docs/DASHBOARD.md) | Dashboard features, data sources, theming guide |
+| [docs/backend-spec.md](docs/backend-spec.md) | Express API endpoint contracts |
+| [docs/master-pipeline.md](docs/master-pipeline.md) | Detailed master pipeline node reference |
+
+---
+
 ## How it works
 
 1. A call finishes in Fathom and a webhook fires.
@@ -19,7 +33,7 @@ Part of the broader **Command HQ** platform; intended to be white-labeled later 
 | Database / auth / storage | Supabase (Postgres + pgvector + Auth + Storage) |
 | Backend API | Node.js + Express + TypeScript |
 | Frontend | React + Vite + TypeScript + Tailwind + shadcn/ui |
-| LLM | Anthropic Claude (Sonnet 4.6 for scoring, Haiku 4.5 for classification) |
+| LLM | Groq (llama-3.3-70b for scoring + trends, llama-3.1-8b for classification) |
 | Transcription fallback | Deepgram Nova-3 |
 | Meeting capture | Fathom (V1), Recall.ai (V2 live mode) |
 

@@ -1277,6 +1277,62 @@
       "waitBetweenTries": 2000,
       "continueOnFail": true,
       "alwaysOutputData": true
+    },
+    {
+      "id": "master-0039",
+      "name": "Get Host for Trend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4380, 480],
+      "continueOnFail": true,
+      "alwaysOutputData": true,
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/call_participants",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "call_id", "value": "=eq.{{ $('Parse Classification').first().json.call_id }}" },
+            { "name": "is_external", "value": "eq.false" },
+            { "name": "role", "value": "eq.host" },
+            { "name": "select", "value": "team_member_id" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "master-0040",
+      "name": "Refresh Rep Trend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4600, 480],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8nserver.metaviz.pro/webhook/trend-refresh",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "mode": "raw",
+          "rawBody": "={{ JSON.stringify({ member_id: $input.first().json.team_member_id, member_name: '' }) }}"
+        },
+        "options": {}
+      }
     }
   ],
   "connections": {
@@ -1610,6 +1666,22 @@
         [
           {
             "node": "Get Participants",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Host for Trend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Host for Trend": {
+      "main": [
+        [
+          {
+            "node": "Refresh Rep Trend",
             "type": "main",
             "index": 0
           }

@@ -4,6 +4,7 @@ import cors from 'cors';
 import rubricRouter from './routes/rubric.js';
 import trendsRouter from './routes/trends.js';
 import assistRouter from './routes/assist.js';
+import analyticsRouter from './routes/analytics.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -27,6 +28,7 @@ app.get('/health', (_req, res) => res.json({ ok: true, service: 'call-analyzer-b
 app.use('/rubrics', rubricRouter);
 app.use('/trends', trendsRouter);
 app.use('/rubric/assist', assistRouter);
+app.use('/analytics', analyticsRouter);
 
 app.listen(PORT, () => {
   console.log(`Backend running on :${PORT}`);

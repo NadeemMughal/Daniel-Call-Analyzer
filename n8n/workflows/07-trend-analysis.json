@@ -87,7 +87,7 @@
       "position": [1120, 300],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const callParticipants = $input.all();\nconst memberItem = $('Loop Over Members').first().json;\nconst callIds = [...new Set(callParticipants.map(p => p.json.call_id).filter(id => id))];\n\nif (callIds.length === 0) {\n  return [{ json: { member_id: memberItem.id, member_name: memberItem.name, has_calls: false, call_ids_csv: '' } }];\n}\n\nreturn [{ json: { member_id: memberItem.id, member_name: memberItem.name, has_calls: true, call_ids_csv: callIds.join(',') } }];"
+        "jsCode": "const callParticipants = $input.all();\nlet memberItem;\ntry { memberItem = $('Loop Over Members').first().json; } catch(e) { memberItem = $('Extract Member').first().json; }\nconst callIds = [...new Set(callParticipants.map(p => p.json.call_id).filter(id => id))];\n\nif (callIds.length === 0) {\n  return [{ json: { member_id: memberItem.id, member_name: memberItem.name, has_calls: false, call_ids_csv: '' } }];\n}\n\nreturn [{ json: { member_id: memberItem.id, member_name: memberItem.name, has_calls: true, call_ids_csv: callIds.join(',') } }];"
       }
     },
     {
@@ -211,9 +211,37 @@
         "options": {}
       }
     }
+    ,
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000012",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-200, 500],
+      "webhookId": "trend-refresh-webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trend-refresh",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "b2c3d4e5-0007-0007-0007-000000000013",
+      "name": "Extract Member",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [20, 500],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $input.item.json.body || $input.item.json;\nconst member_id = body.member_id;\nif (!member_id) throw new Error('No member_id in webhook payload');\nreturn [{ json: { id: member_id, name: body.member_name || '' } }];"
+      }
+    }
   ],
   "connections": {
     "Weekly Schedule": { "main": [[{ "node": "Get All Reps", "type": "main", "index": 0 }]] },
+    "Webhook Trigger": { "main": [[{ "node": "Extract Member", "type": "main", "index": 0 }]] },
+    "Extract Member": { "main": [[{ "node": "Get Member Call IDs", "type": "main", "index": 0 }]] },
     "Get All Reps": { "main": [[{ "node": "Loop Over Members", "type": "main", "index": 0 }]] },
     "Loop Over Members": {
       "main": [
