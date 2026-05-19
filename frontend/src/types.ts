@@ -157,3 +157,26 @@ export interface TrendDataPoint {
   call_id: string
   call_type: CallType
 }
+
+export interface MemberCard {
+  member_id: string
+  member_name: string
+  member_email: string
+  member_role: MemberRole
+  department_name: string | null
+  total_calls: number
+  scored_calls: number
+  avg_score: number | null
+  score_trend: string | null
+  last_call_at: string | null
+  call_type_breakdown: Record<string, number>
+}
+
+export interface ClientStats {
+  client_id: string
+  client_name: string
+  total_calls: number
+  scored_calls: number
+  avg_score: number | null
+  last_call_at: string | null
+}

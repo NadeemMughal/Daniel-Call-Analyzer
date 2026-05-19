@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "02 - Classify Call",
   "nodes": [
     {
@@ -22,7 +22,7 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -34,7 +34,7 @@
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
           ]
         },
         "options": {}
@@ -52,7 +52,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "Authorization", "value": "Bearer ={{ $env.GROQ_API_KEY }}" },
             { "name": "content-type", "value": "application/json" }
           ]
         },
@@ -95,7 +95,7 @@
       "position": [1300, 300],
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -106,7 +106,7 @@
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
@@ -149,7 +149,7 @@
       "position": [1700, 160],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.N8N_BASE_URL }}/webhook/call-meeting-summary",
+        "url": "https://n8nserver.metaviz.pro/webhook/call-meeting-summary",
         "sendHeaders": true,
         "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
         "sendBody": true,
@@ -169,7 +169,7 @@
       "position": [1700, 380],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.N8N_BASE_URL }}/webhook/call-rule-engine",
+        "url": "https://n8nserver.metaviz.pro/webhook/call-rule-engine",
         "sendHeaders": true,
         "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
         "sendBody": true,
@@ -189,7 +189,7 @@
       "position": [1700, 520],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.N8N_BASE_URL }}/webhook/call-scorecard",
+        "url": "https://n8nserver.metaviz.pro/webhook/call-scorecard",
         "sendHeaders": true,
         "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
         "sendBody": true,

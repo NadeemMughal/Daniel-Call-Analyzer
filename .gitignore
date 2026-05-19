@@ -111,3 +111,7 @@ audio/
 # ─── Misc ──────────────────────────────────────────────────
 .history/
 .parcel-cache/
+
+# ─── Sensitive docs (contain live system details / credentials) ──
+docs/PROJECT_STATUS.md
+docs/session-history.md

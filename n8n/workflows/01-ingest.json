@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "01 - Ingest Fathom Call",
   "nodes": [
     {
@@ -22,7 +22,7 @@
       "position": [460, 300],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const crypto = require('crypto');\nconst secret = $env.FATHOM_WEBHOOK_SECRET || '';\nif (secret) {\n  const sig = $input.first().json.headers?.['x-fathom-signature'] || '';\n  const body = JSON.stringify($input.first().json.body);\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');\n  if (sig !== expected) throw new Error('Invalid HMAC signature');\n}\nreturn $input.all();"
+        "jsCode": "const crypto = require('crypto');\nconst secret = '';\nif (secret) {\n  const sig = $input.first().json.headers?.['x-fathom-signature'] || '';\n  const body = JSON.stringify($input.first().json.body);\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');\n  if (sig !== expected) throw new Error('Invalid HMAC signature');\n}\nreturn $input.all();"
       }
     },
     {
@@ -33,7 +33,7 @@
       "position": [680, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -45,7 +45,7 @@
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
           ]
         },
         "options": {}
@@ -80,12 +80,12 @@
       "position": [1120, 200],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
@@ -119,7 +119,7 @@
       "position": [1340, 120],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.N8N_BASE_URL }}/webhook/call-classify",
+        "url": "https://n8nserver.metaviz.pro/webhook/call-classify",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

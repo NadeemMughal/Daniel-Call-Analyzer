@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "07 - Weekly Trend Analysis",
   "nodes": [
     {
@@ -21,7 +21,7 @@
       "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/team_members",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/team_members",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -33,7 +33,7 @@
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
           ]
         },
         "options": {}
@@ -58,7 +58,7 @@
       "position": [900, 300],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/call_participants",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/call_participants",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -73,7 +73,7 @@
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
           ]
         },
         "options": {}
@@ -112,7 +112,7 @@
       "position": [1560, 200],
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/scorecards",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -125,7 +125,7 @@
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
           ]
         },
         "options": {}
@@ -154,7 +154,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "Authorization", "value": "Bearer ={{ $env.GROQ_API_KEY }}" },
             { "name": "content-type", "value": "application/json" }
           ]
         },
@@ -186,7 +186,7 @@
       "position": [2440, 200],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/member_trends",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/member_trends",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -197,7 +197,7 @@
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" }
           ]

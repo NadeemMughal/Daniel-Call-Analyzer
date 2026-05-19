@@ -3,7 +3,7 @@ import { Outlet, NavLink, useSearchParams } from 'react-router-dom'
 import {
   PhoneCall, TrendingUp, BookOpen, Activity, Briefcase,
   Users as UsersIcon, Search, Wrench, Banknote, Megaphone, AlertTriangle,
-  LayoutDashboard, TrendingDown
+  LayoutDashboard, TrendingDown, Building2
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 const PRIMARY_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/calls', label: 'All Calls', icon: PhoneCall },
+  { to: '/clients', label: 'Clients', icon: Building2 },
   { to: '/trends', label: 'Trends', icon: TrendingUp },
   { to: '/coaching', label: 'Coaching', icon: TrendingDown },
   { to: '/rubric', label: 'Rubric', icon: BookOpen },

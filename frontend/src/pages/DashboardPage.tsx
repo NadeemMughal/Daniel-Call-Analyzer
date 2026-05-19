@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import { formatDateTime } from '@/lib/utils'
+import { api } from '@/lib/api'
+import { formatDateTime, formatDate } from '@/lib/utils'
+import type { MemberCard } from '@/types'
 import {
   Activity, Users, ListChecks, TrendingUp, TrendingDown,
   AlertTriangle, ArrowRight, Clock, Briefcase, Target, Zap,
@@ -86,11 +88,21 @@ interface DashData {
 }
 
 // ─── component ────────────────────────────────────────────────
+const CALL_TYPE_COLORS_HEX: Record<string, string> = {
+  discovery: '#a855f7',
+  ads_intro: '#3b82f6',
+  launch:    '#10b981',
+  follow_up: '#f59e0b',
+  team:      '#94a3b8',
+  other:     '#6b7280',
+}
+
 export default function DashboardPage() {
-  const [data,       setData]       = useState<DashData | null>(null)
-  const [weekly,     setWeekly]     = useState<WeeklyPoint[]>([])
-  const [leaderboard,setLeaderboard]= useState<LeaderEntry[]>([])
-  const [loading,    setLoading]    = useState(true)
+  const [data,        setData]        = useState<DashData | null>(null)
+  const [weekly,      setWeekly]      = useState<WeeklyPoint[]>([])
+  const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([])
+  const [memberCards, setMemberCards] = useState<MemberCard[]>([])
+  const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -101,7 +113,7 @@ export default function DashboardPage() {
       const [
         callsRes, scoresRes, weekRes, prevWeekRes, deptRes,
         actionRes, recentRes, failRes, phaseRes, callTypeRes, findingsRes,
-        weeklyRpc, leaderRpc,
+        weeklyRpc, leaderRpc, memberCardsData,
       ] = await Promise.all([
         supabase.from('calls').select('id', { count:'exact', head:true }),
         supabase.from('scorecards').select('overall_score').not('overall_score','is',null),
@@ -116,6 +128,7 @@ export default function DashboardPage() {
         supabase.from('rule_findings').select('rule_key'),
         (supabase as any).rpc('get_weekly_stats', { weeks_back: 8 }),
         (supabase as any).rpc('get_team_leaderboard'),
+        api.analytics.memberCards().catch(() => []),
       ])
 
       // Scores & tiers
@@ -198,6 +211,7 @@ export default function DashboardPage() {
 
       setWeekly(weeklyData)
       setLeaderboard((leaderRpc.data || []) as LeaderEntry[])
+      setMemberCards(Array.isArray(memberCardsData) ? memberCardsData as MemberCard[] : [])
       setData({
         totalCalls: callsRes.count || 0,
         scoredCalls: allScores.length,
@@ -331,69 +345,121 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Team Leaderboard ── */}
-      {leaderboard.length > 0 && (
-        <div className="card overflow-hidden mb-6">
-          <div className="px-5 py-4 border-b border-[hsl(222,32%,15%)] flex items-center justify-between">
+      {/* ── Team Performance Cards ── */}
+      {(memberCards.length > 0 || leaderboard.length > 0) && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5 text-amber-400" /> Team Leaderboard
+              <Trophy className="w-3.5 h-3.5 text-amber-400" /> Team Performance
             </h2>
             <Link to="/trends" className="text-xs text-blue-400 hover:text-blue-300 inline-flex items-center gap-1">
               Full trends <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <table className="w-full">
-            <thead>
-              <tr className="bg-[hsl(222,47%,5%)]">
-                {['Rank','Member','Calls','Scored','Score','Trend'].map(h => (
-                  <th key={h} className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((m, i) => {
-                const tb = trendBadge(m.score_trend)
-                const TbIcon = tb.icon
-                const initials = m.member_name.split(' ').map(p => p[0]).slice(0,2).join('')
-                const rankStyle = i === 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                  : i === 1 ? 'bg-gray-400/20 text-gray-300 border border-gray-400/40'
-                  : i === 2 ? 'bg-orange-700/20 text-orange-400 border border-orange-700/40'
-                  : 'bg-[hsl(222,47%,8%)] text-gray-500 border border-[hsl(222,32%,18%)]'
-                return (
-                  <tr key={m.member_id} className="border-t border-[hsl(222,32%,12%)] hover:bg-white/[0.02] transition">
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-bold ${rankStyle}`}>
-                        {i + 1}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/20 flex items-center justify-center text-blue-400 text-[11px] font-bold shrink-0">
-                          {initials}
-                        </div>
-                        <span className="text-[13px] font-medium text-white">{m.member_name}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {(memberCards.length > 0 ? memberCards : leaderboard.map(l => ({
+              member_id: l.member_id, member_name: l.member_name, member_email: '',
+              member_role: 'rep' as any, department_name: null,
+              total_calls: l.total_calls, scored_calls: l.scored_calls,
+              avg_score: l.avg_score, score_trend: l.score_trend,
+              last_call_at: null, call_type_breakdown: {},
+            }))).map((m, i) => {
+              const tb = trendBadge(m.score_trend ?? '')
+              const TbIcon = tb.icon
+              const initials = m.member_name.split(' ').map((p: string) => p[0]).slice(0,2).join('')
+              const rankMedal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+              const breakdown = m.call_type_breakdown ?? {}
+              const topTypes = Object.entries(breakdown)
+                .sort(([, a], [, b]) => (b as number) - (a as number))
+                .slice(0, 4)
+
+              return (
+                <Link
+                  key={m.member_id}
+                  to={`/members/${m.member_id}`}
+                  className="card p-5 hover:bg-white/[0.025] hover:border-blue-500/30 transition group border border-[hsl(222,32%,18%)] flex flex-col gap-4 cursor-pointer"
+                >
+                  {/* Header row */}
+                  <div className="flex items-start gap-3">
+                    <div className="relative shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/25 flex items-center justify-center text-blue-400 text-[13px] font-bold">
+                        {initials}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-[12px] text-gray-400 font-mono">{m.total_calls}</td>
-                    <td className="px-4 py-3 text-[12px] text-gray-500 font-mono">{m.scored_calls}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <ScoreRing score={m.avg_score} size="sm" />
-                        <span className="text-[12px] font-bold" style={{ color: scoreColor(m.avg_score) }}>
-                          {m.avg_score !== null ? `${m.avg_score}/10` : '—'}
+                      {rankMedal && (
+                        <span className="absolute -top-1.5 -right-1.5 text-[13px] leading-none">{rankMedal}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[14px] font-semibold text-white truncate">{m.member_name}</p>
+                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          {m.member_role}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${tb.bg} ${tb.color}`}>
-                        <TbIcon className="w-3 h-3" /> {tb.label}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      {m.department_name && (
+                        <p className="text-[11px] text-gray-500 mt-0.5">{m.department_name}</p>
+                      )}
+                      {m.member_email && (
+                        <p className="text-[11px] text-gray-600 truncate">{m.member_email}</p>
+                      )}
+                    </div>
+                    <ScoreRing score={m.avg_score} size="md" showLabel />
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-[hsl(222,47%,5%)] rounded-lg px-2 py-2 border border-[hsl(222,32%,14%)]">
+                      <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-0.5">Calls</p>
+                      <p className="text-[15px] font-bold text-gray-200 font-mono">{m.total_calls}</p>
+                    </div>
+                    <div className="bg-[hsl(222,47%,5%)] rounded-lg px-2 py-2 border border-[hsl(222,32%,14%)]">
+                      <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-0.5">Scored</p>
+                      <p className="text-[15px] font-bold text-emerald-400 font-mono">{m.scored_calls}</p>
+                    </div>
+                    <div className="bg-[hsl(222,47%,5%)] rounded-lg px-2 py-2 border border-[hsl(222,32%,14%)]">
+                      <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-0.5">Score</p>
+                      <p className="text-[15px] font-bold font-mono" style={{ color: scoreColor(m.avg_score) }}>
+                        {m.avg_score !== null ? m.avg_score : '—'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Call type breakdown bars */}
+                  {topTypes.length > 0 && (
+                    <div className="space-y-1.5">
+                      {topTypes.map(([type, pct]) => (
+                        <div key={type}>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[10px] text-gray-500 capitalize">{type.replace(/_/g,' ')}</span>
+                            <span className="text-[10px] text-gray-500 font-mono">{Math.round((pct as number)*100)}%</span>
+                          </div>
+                          <div className="bg-[hsl(222,47%,5%)] rounded-full h-1 overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width:`${Math.round((pct as number)*100)}%`, background: CALL_TYPE_COLORS_HEX[type] ?? '#6b7280' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Footer row */}
+                  <div className="flex items-center justify-between pt-1 border-t border-[hsl(222,32%,13%)]">
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${tb.bg} ${tb.color}`}>
+                      <TbIcon className="w-3 h-3" /> {tb.label}
+                    </span>
+                    {m.last_call_at && (
+                      <span className="text-[10px] text-gray-600">{formatDate(m.last_call_at)}</span>
+                    )}
+                    <span className="text-[10px] text-blue-400 group-hover:text-blue-300 inline-flex items-center gap-0.5 transition">
+                      Report <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         </div>
       )}
 
