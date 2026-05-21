@@ -46,8 +46,8 @@
 | Database migrations | 14 |
 | Portal pages | 12 |
 | User roles | 3 (Admin / Manager / Rep) |
-| AI model for scoring | Groq llama-3.3-70b-versatile |
-| AI model for classification | Groq llama-3.1-8b-instant |
+| AI model for scoring | Anthropic claude-sonnet-4-6 |
+| AI model for classification | Anthropic claude-haiku-4-5 |
 
 ---
 
@@ -90,9 +90,9 @@
 │  Vite 6            TypeScript        RLS + Auth                     │
 │  Tailwind CSS      Zod validation                   AI / LLM        │
 │  Recharts                            HOSTING         ──────────     │
-│  Radix UI          DEPLOYMENT        ──────────      Groq API       │
-│  React Router      ──────────        Vercel          llama-3.3-70b  │
-│  Lucide Icons      Render            (Frontend)      llama-3.1-8b   │
+│  Radix UI          DEPLOYMENT        ──────────      Anthropic      │
+│  React Router      ──────────        Vercel          sonnet-4-6     │
+│  Lucide Icons      Render            (Frontend)      haiku-4-5      │
 │                    (Backend)                                         │
 │  INTEGRATIONS                                                        │
 │  ──────────────────────────────                                     │
@@ -108,8 +108,8 @@
 |-------|-----------|---------|
 | **Call Recording** | Fathom (SaaS) | Records calls, generates transcripts, fires webhook |
 | **Automation Engine** | n8n (self-hosted) | Runs the full pipeline when a call arrives |
-| **AI Scoring** | Groq API (llama-3.3-70b) | Scores calls against rubric, extracts evidence quotes |
-| **AI Classification** | Groq API (llama-3.1-8b) | Fast, cheap call type classification |
+| **AI Scoring** | Anthropic API (claude-sonnet-4-6) | Scores calls against rubric, extracts evidence quotes |
+| **AI Classification** | Anthropic API (claude-haiku-4-5) | Fast, cheap call type classification |
 | **Database** | Supabase PostgreSQL | Stores all calls, scores, users, rubrics |
 | **Auth** | Supabase Auth | Email/password login, JWT sessions |
 | **Backend API** | Express.js + TypeScript | Aggregations, RBAC enforcement, rubric management |
@@ -355,7 +355,7 @@ Webhook (receives call_id + transcript snippet)
 Fetch full call from Supabase
         │
         ▼
-Send to Groq llama-3.1-8b-instant
+Send to Anthropic claude-haiku-4-5
   Prompt: "What type of call is this? Options:
            discovery / ads_intro / launch /
            follow_up / team / other"
@@ -374,7 +374,7 @@ Also classify meeting_phase
 Return to master pipeline
 ```
 
-**AI Model:** llama-3.1-8b-instant (fast, cheap — classification only)
+**AI Model:** Anthropic claude-haiku-4-5 (fast, cheap — classification only)
 
 ---
 
@@ -411,7 +411,7 @@ Return findings count to master pipeline
 
 ### Workflow 04 — Scorecard ⭐ (Core Workflow)
 
-**Purpose:** The main AI scoring engine. Sends the full transcript to Groq, gets a structured scorecard back, saves it with evidence quotes.
+**Purpose:** The main AI scoring engine. Sends the full transcript to Anthropic Claude, gets a structured scorecard back, saves it with evidence quotes.
 
 ```
 Webhook (receives call_id)
@@ -436,7 +436,7 @@ Build Score Request
 (construct detailed prompt with transcript + rubric)
         │
         ▼
-Send to Groq llama-3.3-70b-versatile
+Send to Anthropic claude-sonnet-4-6
   System prompt: "You are an expert sales coach.
                   Score this call against these criteria..."
   Response format: JSON with overall_score, per-criterion
@@ -470,7 +470,7 @@ UPDATE calls SET status = 'scored'
 Trigger 05-notify
 ```
 
-**AI Model:** llama-3.3-70b-versatile (most capable, used for full scoring)
+**AI Model:** Anthropic claude-sonnet-4-6 (most capable, used for full scoring)
 
 ---
 
@@ -511,7 +511,7 @@ Fetch call from Supabase
 Is this a team call? (call_type = 'team')
   ├── NO  → Return, skip
   │
-  └── YES → Send to Groq for summary:
+  └── YES → Send to Groq (llama-3.3-70b) for summary:
                - Key discussion points
                - Decisions made
                - Action items
@@ -606,7 +606,7 @@ TRENDS
   GET  /trends/:memberId           → trend data for one member
 
 ASSIST
-  POST /assist/rubric              → AI-assisted rubric suggestions (Groq)
+  POST /assist/rubric              → AI-assisted rubric suggestions (Groq/Anthropic)
 ```
 
 ### RBAC — Who Can Access What
@@ -873,7 +873,7 @@ Low-scoring calls and reps that need attention. Ranked by score or number of red
 ```
 INPUT: Full call transcript (plain text, can be 5,000+ words)
 
-SYSTEM PROMPT to Groq llama-3.3-70b:
+SYSTEM PROMPT to Anthropic claude-sonnet-4-6:
 ┌─────────────────────────────────────────────────────────────────┐
 │  "You are an expert sales coach for WeBuildTrades.              │
 │   Score this sales call against the following rubric.           │
@@ -893,7 +893,7 @@ SYSTEM PROMPT to Groq llama-3.3-70b:
 │   Return ONLY valid JSON in this exact format: {...}"           │
 └─────────────────────────────────────────────────────────────────┘
 
-OUTPUT from Groq:
+OUTPUT from Claude:
 {
   "overall_score": 8.1,
   "summary": "Strong call with good rapport...",
@@ -943,9 +943,9 @@ TIME 0:05  ─── Fathom processes recording + transcript
 TIME 0:15  ─── Fathom fires webhook to n8n
 TIME 0:16  ─── n8n verifies HMAC, checks duplicate
 TIME 0:17  ─── 01-ingest: call saved to Supabase (status=pending)
-TIME 0:18  ─── 02-classify: Groq classifies call type
+TIME 0:18  ─── 02-classify: Claude Haiku classifies call type
 TIME 0:19  ─── 03-rule-engine: banned words, fillers, talk ratio
-TIME 0:25  ─── 04-scorecard: Groq scores full transcript
+TIME 0:25  ─── 04-scorecard: Claude Sonnet scores full transcript
 TIME 0:28  ─── Scorecard + evidence saved to Supabase
 TIME 0:28  ─── 05-notify: email sent to rep + manager
 TIME 0:29  ─── Status updated to 'scored'
@@ -965,10 +965,10 @@ duration (seconds)           →  calls.duration_seconds →  "32 min"
 recorded_at (ISO timestamp)  →  calls.recorded_at      →  "May 21, 2026"
 
 AFTER AI PROCESSING:
-Groq JSON response           →  scorecards.overall_score → "8.1 / 10"
-Groq criterion scores        →  scorecards.strengths   →  Scorecard bars
-Groq evidence quotes         →  scorecard_evidence     →  Quote cards
-Groq summary text            →  scorecards.summary     →  AI summary box
+Claude JSON response         →  scorecards.overall_score → "8.1 / 10"
+Claude criterion scores      →  scorecards.strengths   →  Scorecard bars
+Claude evidence quotes       →  scorecard_evidence     →  Quote cards
+Claude summary text          →  scorecards.summary     →  AI summary box
 Rule findings                →  rule_findings          →  Flags in detail view
 ```
 
