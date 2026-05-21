@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Rubric } from '@/types'
+const WBT_TOKEN = () => localStorage.getItem('wbt_auth_token') || ''
 import { Save, Plus, Trash2, BookOpen, Sparkles, Loader2, Check, AlertCircle } from 'lucide-react'
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:4000'
@@ -41,13 +42,12 @@ export default function RubricPage() {
     if (!assistInput.trim()) return
     setAssisting(true); setAssistError(null); setSuggestion(null)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
       const currentCriteria = (() => {
         try { return (JSON.parse(content) as Record<string, unknown>)?.scoring_criteria ?? [] } catch { return [] }
       })()
       const res = await fetch(`${BACKEND_URL}/rubric/assist`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WBT_TOKEN()}` },
         body: JSON.stringify({ current_criteria: currentCriteria, user_request: assistInput.trim() }),
       })
       if (!res.ok) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import { formatDuration, formatDateTime } from '@/lib/utils'
 import type { Call, Scorecard, RuleFinding } from '@/types'
 import ScoreRing from '@/components/ScoreRing'
@@ -97,19 +97,17 @@ export default function CallDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([
-      supabase.from('calls').select(`*, clients(id, name), departments(id, name), call_participants(id, role, is_external, name, email, team_members(id, name, email))`).eq('id', id).single(),
-      supabase.from('scorecards').select('*, scorecard_evidence(*)').eq('call_id', id).order('created_at', { ascending: false }).limit(1).single(),
-      supabase.from('rule_findings').select('*').eq('call_id', id),
-    ]).then(([cr, sr, fr]) => {
-      if (cr.data) setCall(cr.data as unknown as Call)
-      if (sr.data) setScorecard(sr.data as unknown as ScorecardWithEvidence)
-      if (fr.data) {
-        const order: Record<string, number> = { critical: 0, warning: 1, info: 2 }
-        setFindings((fr.data as RuleFinding[]).sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3)))
-      }
-      setLoading(false)
-    })
+    api.calls.get(id)
+      .then(({ call, scorecard, findings: rawFindings }) => {
+        if (call) setCall(call as unknown as Call)
+        if (scorecard) setScorecard(scorecard as unknown as ScorecardWithEvidence)
+        if (rawFindings) {
+          const order: Record<string, number> = { critical: 0, warning: 1, info: 2 }
+          setFindings((rawFindings as RuleFinding[]).sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3)))
+        }
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [id])
 
   if (loading) return <div className="p-12 text-gray-500 text-sm">Loading scorecard…</div>

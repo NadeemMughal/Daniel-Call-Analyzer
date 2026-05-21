@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
 import { api } from '@/lib/api'
+import { useProfile } from '@/lib/auth'
 import { formatDateTime, formatDate } from '@/lib/utils'
 import type { MemberCard } from '@/types'
 import {
@@ -73,7 +73,6 @@ function fmtRuleKey(k: string) {
 
 // ─── interfaces ───────────────────────────────────────────────
 interface WeeklyPoint { week_label: string; total_calls: number; scored_calls: number; avg_score: number | null }
-interface LeaderEntry  { member_id: string; member_name: string; total_calls: number; scored_calls: number; avg_score: number | null; score_trend: string }
 interface DashData {
   totalCalls: number; scoredCalls: number; weekCalls: number; prevWeekCalls: number
   avgScore: number | null; prevAvgScore: number | null
@@ -98,130 +97,46 @@ const CALL_TYPE_COLORS_HEX: Record<string, string> = {
 }
 
 export default function DashboardPage() {
+  const profile = useProfile()
   const [data,        setData]        = useState<DashData | null>(null)
   const [weekly,      setWeekly]      = useState<WeeklyPoint[]>([])
-  const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([])
   const [memberCards, setMemberCards] = useState<MemberCard[]>([])
   const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
     async function load() {
-      const sevenDaysAgo    = new Date(Date.now() -  7 * 86400000).toISOString()
-      const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString()
-      const oneDayAgo       = new Date(Date.now() -      86400000).toISOString()
-
-      const [
-        callsRes, scoresRes, weekRes, prevWeekRes, deptRes,
-        actionRes, recentRes, failRes, phaseRes, callTypeRes, findingsRes,
-        weeklyRpc, leaderRpc, memberCardsData,
-      ] = await Promise.all([
-        supabase.from('calls').select('id', { count:'exact', head:true }),
-        supabase.from('scorecards').select('overall_score').not('overall_score','is',null),
-        supabase.from('calls').select('id', { count:'exact', head:true }).gte('recorded_at', sevenDaysAgo),
-        supabase.from('calls').select('id', { count:'exact', head:true }).gte('recorded_at', fourteenDaysAgo).lt('recorded_at', sevenDaysAgo),
-        supabase.from('departments').select('id, name, calls(id, scorecards(overall_score))'),
-        supabase.from('scorecard_evidence').select('quote, scorecards(call_id, calls(call_type))').eq('criterion_key','action_item').order('created_at',{ascending:false}).limit(8),
-        supabase.from('calls').select('id, call_type, status, recorded_at, departments(name), scorecards(overall_score, summary)').order('recorded_at',{ascending:false,nullsFirst:false}).limit(5),
-        supabase.from('failed_executions').select('id',{count:'exact',head:true}).gte('created_at', oneDayAgo),
-        supabase.from('scorecard_evidence').select('quote').eq('criterion_key','meeting_phase'),
-        supabase.from('calls').select('call_type, scorecards(overall_score)'),
-        supabase.from('rule_findings').select('rule_key'),
-        (supabase as any).rpc('get_weekly_stats', { weeks_back: 8 }),
-        (supabase as any).rpc('get_team_leaderboard'),
+      const [dash, weeklyRpc, memberCardsData] = await Promise.all([
+        api.analytics.dashboard(),
+        api.analytics.overview(8),
         api.analytics.memberCards().catch(() => []),
       ])
 
-      // Scores & tiers
-      const allScores = (scoresRes.data || []).map((d: any) => parseFloat(d.overall_score)).filter(Boolean)
-      const avg       = allScores.length ? allScores.reduce((a: number, b: number) => a + b, 0) / allScores.length : null
-      const scoreTiers = {
-        excellent: allScores.filter((s: number) => s >= 8.5).length,
-        good:      allScores.filter((s: number) => s >= 7 && s < 8.5).length,
-        needsWork: allScores.filter((s: number) => s >= 5 && s < 7).length,
-        poor:      allScores.filter((s: number) => s < 5).length,
-      }
-
-      // Prev week avg (from scores in the prev 7-14 day window)
-      // We approximate by using the weekly RPC data
-      const weeklyData: WeeklyPoint[] = (weeklyRpc.data || []).map((r: any) => ({
-        week_label: r.week_label,
-        total_calls: Number(r.total_calls ?? 0),
+      const weeklyData: WeeklyPoint[] = (weeklyRpc || []).map((r: any) => ({
+        week_label:   r.week_label,
+        total_calls:  Number(r.total_calls ?? 0),
         scored_calls: Number(r.scored_calls ?? 0),
-        avg_score: r.avg_score !== null ? parseFloat(r.avg_score) : null,
+        avg_score:    r.avg_score !== null ? parseFloat(r.avg_score) : null,
       }))
-      const lastWeek = weeklyData[weeklyData.length - 1]
-      const prevWeek = weeklyData[weeklyData.length - 2]
+      const prevWeek     = weeklyData[weeklyData.length - 2]
       const prevAvgScore = prevWeek?.avg_score ?? null
 
-      // Call type breakdown
-      const ctMap: Record<string, { count: number; scores: number[] }> = {}
-      for (const row of (callTypeRes.data || []) as any[]) {
-        const ct = row.call_type || 'other'
-        if (!ctMap[ct]) ctMap[ct] = { count: 0, scores: [] }
-        ctMap[ct].count++
-        const s = row.scorecards?.[0]?.overall_score
-        if (s != null) ctMap[ct].scores.push(parseFloat(s))
-      }
-      const byCallType = Object.entries(ctMap).map(([call_type, { count, scores }]) => ({
-        call_type, count,
-        avg: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
-      })).sort((a, b) => b.count - a.count)
-
-      // Top findings
-      const fkMap: Record<string, number> = {}
-      for (const row of (findingsRes.data || []) as any[]) {
-        const k = row.rule_key || 'unknown'
-        fkMap[k] = (fkMap[k] || 0) + 1
-      }
-      const totalF = Object.values(fkMap).reduce((a, b) => a + b, 0)
-      const topFindings = Object.entries(fkMap)
-        .map(([rule_key, count]) => ({ rule_key, count, pct: totalF > 0 ? Math.round(count / totalF * 100) : 0 }))
-        .sort((a, b) => b.count - a.count).slice(0, 8)
-
-      // Dept
-      const byDept = (deptRes.data || []).map((d: any) => {
-        const calls = d.calls || []
-        const scs   = calls.map((c: any) => c.scorecards?.[0]?.overall_score).filter((s: any) => typeof s === 'number') as number[]
-        return { name: d.name as string, count: calls.length, avg: scs.length ? scs.reduce((a: number, b: number) => a + b, 0) / scs.length : null }
-      }).filter((d: any) => d.count > 0).sort((a: any, b: any) => b.count - a.count)
-
-      // Actions
-      const topActions = (actionRes.data || []).map((r: any) => ({
-        task:      String(r.quote || '').split(' - Owner:')[0].split(' [')[0],
-        call_id:   r.scorecards?.call_id || '',
-        call_type: r.scorecards?.calls?.call_type ?? null,
-      })).filter((a: any) => a.call_id)
-
-      // Recent calls
-      const recentCalls = (recentRes.data || []).map((c: any) => ({
-        id: c.id, call_type: c.call_type, status: c.status, recorded_at: c.recorded_at,
-        score: c.scorecards?.[0]?.overall_score ?? null,
-        department_name: c.departments?.name ?? null,
-        summary_first_line: (c.scorecards?.[0]?.summary || '').split('.')[0].slice(0, 80),
-      }))
-
-      // Phase distribution
-      const phaseCounts: Record<string, number> = {}
-      for (const row of (phaseRes.data || []) as any[]) {
-        const p = String(row.quote || '').trim().toLowerCase()
-        if (!p) continue
-        phaseCounts[p] = (phaseCounts[p] || 0) + 1
-      }
-      const byPhase = Object.entries(phaseCounts).map(([phase, count]) => ({ phase, count })).sort((a, b) => b.count - a.count)
-
       setWeekly(weeklyData)
-      setLeaderboard((leaderRpc.data || []) as LeaderEntry[])
       setMemberCards(Array.isArray(memberCardsData) ? memberCardsData as MemberCard[] : [])
       setData({
-        totalCalls: callsRes.count || 0,
-        scoredCalls: allScores.length,
-        weekCalls: weekRes.count || 0,
-        prevWeekCalls: prevWeekRes.count || 0,
-        avgScore: avg,
+        totalCalls:    dash.totalCalls,
+        scoredCalls:   dash.scoredCalls,
+        weekCalls:     dash.weekCalls,
+        prevWeekCalls: dash.prevWeekCalls,
+        avgScore:      dash.avgScore,
         prevAvgScore,
-        byDept, byPhase, topActions, recentCalls,
-        failures24h: failRes.count || 0,
-        byCallType, topFindings, scoreTiers,
+        byDept:        dash.byDept,
+        byPhase:       dash.byPhase,
+        topActions:    dash.topActions,
+        recentCalls:   dash.recentCalls,
+        failures24h:   dash.failures24h,
+        byCallType:    dash.byCallType,
+        topFindings:   dash.topFindings,
+        scoreTiers:    dash.scoreTiers,
       })
       setLoading(false)
     }
@@ -270,8 +185,18 @@ export default function DashboardPage() {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot" />
           <span className="text-xs text-emerald-400 font-medium uppercase tracking-wider">Live</span>
         </div>
-        <h1 className="text-3xl font-bold text-white">Command Center</h1>
-        <p className="text-gray-500 text-sm mt-1">Pipeline health, performance trends, and what needs attention.</p>
+        <h1 className="text-3xl font-bold text-white">
+          {profile?.role === 'rep' ? 'My Dashboard' : 'Command Center'}
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">
+          {profile?.role === 'rep'
+            ? `Welcome, ${profile.name} — your calls and performance.`
+            : profile?.role === 'manager'
+            ? `Welcome, ${profile.name} — your team's performance at a glance.`
+            : profile
+            ? `Welcome, ${profile.name} — full org view.`
+            : 'Pipeline health, performance trends, and what needs attention.'}
+        </p>
       </div>
 
       {/* ── KPI Strip ── */}
@@ -280,7 +205,7 @@ export default function DashboardPage() {
         <KPI icon={ListChecks}     label="Calls scored"  value={data.scoredCalls}  borderColor="border-l-emerald-500" accent="text-emerald-400"          />
         <KPI icon={Clock}          label="Last 7 days"   value={data.weekCalls}    borderColor="border-l-violet-500"  accent="text-violet-400"
           delta={weekDelta !== 0 ? weekDelta : undefined} deltaLabel="vs prev week" />
-        <KPI icon={TrendingUp}     label="Org avg score" value={data.avgScore !== null ? `${data.avgScore.toFixed(1)}` : '—'} borderColor="border-l-amber-500" accent="text-amber-400"
+        <KPI icon={TrendingUp}     label={profile?.role === 'rep' ? 'My avg score' : 'Org avg score'} value={data.avgScore !== null ? `${data.avgScore.toFixed(1)}` : '—'} borderColor="border-l-amber-500" accent="text-amber-400"
           delta={scoreDelta ?? undefined} deltaLabel="vs prev" isScore />
       </div>
 
@@ -346,24 +271,19 @@ export default function DashboardPage() {
       )}
 
       {/* ── Team Performance Cards ── */}
-      {(memberCards.length > 0 || leaderboard.length > 0) && (
+      {memberCards.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5 text-amber-400" /> Team Performance
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              {profile?.role === 'rep' ? 'My Performance' : profile?.role === 'manager' ? 'Your Team' : 'Team Performance'}
             </h2>
             <Link to="/trends" className="text-xs text-blue-400 hover:text-blue-300 inline-flex items-center gap-1">
               Full trends <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {(memberCards.length > 0 ? memberCards : leaderboard.map(l => ({
-              member_id: l.member_id, member_name: l.member_name, member_email: '',
-              member_role: 'rep' as any, department_name: null,
-              total_calls: l.total_calls, scored_calls: l.scored_calls,
-              avg_score: l.avg_score, score_trend: l.score_trend,
-              last_call_at: null, call_type_breakdown: {},
-            }))).map((m, i) => {
+            {memberCards.map((m: MemberCard, i: number) => {
               const tb = trendBadge(m.score_trend ?? '')
               const TbIcon = tb.icon
               const initials = m.member_name.split(' ').map((p: string) => p[0]).slice(0,2).join('')

@@ -13,6 +13,7 @@ import CoachingPage from './pages/CoachingPage'
 import MemberReportPage from './pages/MemberReportPage'
 import ClientsPage from './pages/ClientsPage'
 import ClientDetailPage from './pages/ClientDetailPage'
+import TeamsPage from './pages/TeamsPage'
 
 export default function App() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="members/:id" element={<MemberReportPage />} />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="clients/:id" element={<ClientDetailPage />} />
+            <Route path="teams" element={<TeamsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

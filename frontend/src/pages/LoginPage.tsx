@@ -9,12 +9,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [slow, setSlow] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    setSlow(false)
     setLoading(true)
+    const slowTimer = setTimeout(() => setSlow(true), 6000)
     const { error } = await signIn(email, password)
+    clearTimeout(slowTimer)
+    setSlow(false)
     setLoading(false)
     if (error) {
       setError(error.message)
@@ -61,6 +66,11 @@ export default function LoginPage() {
             </div>
             {error && (
               <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
+            )}
+            {slow && !error && (
+              <p className="text-yellow-400 text-xs bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                Taking longer than usual… if this keeps happening, try clearing your browser cache for this page.
+              </p>
             )}
             <button
               type="submit"

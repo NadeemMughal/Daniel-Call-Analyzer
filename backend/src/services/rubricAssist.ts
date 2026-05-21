@@ -39,27 +39,28 @@ export async function assistRubricEdit(
     `User request: ${userRequest}\n\n` +
     `Return only the JSON.`;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      'x-api-key': process.env.ANTHROPIC_API_KEY!,
+      'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
+      system: SYSTEM_PROMPT,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`Groq API error ${response.status}: ${await response.text()}`);
+    throw new Error(`Anthropic API error ${response.status}: ${await response.text()}`);
   }
 
-  const data = await response.json() as { choices: Array<{ message: { content: string } }> };
-  const content = data.choices?.[0]?.message?.content?.trim() ?? '{}';
+  const data = await response.json() as { content: Array<{ type: string; text: string }> };
+  const content = data.content?.[0]?.text?.trim() ?? '{}';
   return JSON.parse(content);
 }

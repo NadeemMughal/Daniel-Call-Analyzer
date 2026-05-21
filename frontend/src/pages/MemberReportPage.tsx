@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
 import { api } from '@/lib/api'
+import { useProfile } from '@/lib/auth'
 import { formatDate, formatDateTime } from '@/lib/utils'
-import type { TeamMember, Scorecard } from '@/types'
+import type { TeamMember } from '@/types'
 import ScoreRing from '@/components/ScoreRing'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -11,7 +11,8 @@ import {
 } from 'recharts'
 import {
   ChevronLeft, Activity, TrendingUp, TrendingDown, Minus,
-  ArrowRight, Target, Award, Users, Clock, CheckCircle,
+  ArrowRight, Target, Award, Users, Clock, CheckCircle, MessageSquare, Trash2,
+  Star, Zap, BarChart2, ShieldAlert,
 } from 'lucide-react'
 
 // ─── constants ────────────────────────────────────────────────
@@ -46,6 +47,15 @@ function scoreHex(s: number | null) {
   return '#ef4444'
 }
 
+function getGrade(avg: number | null): { letter: string; color: string; bg: string; border: string; desc: string } {
+  if (avg === null) return { letter: '—', color: 'text-gray-500', bg: 'bg-gray-500/10', border: 'border-gray-500/30', desc: 'No data yet' }
+  if (avg >= 8.5)  return { letter: 'A', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', desc: 'Exceptional' }
+  if (avg >= 7.0)  return { letter: 'B', color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/30',    desc: 'Above target' }
+  if (avg >= 5.5)  return { letter: 'C', color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   desc: 'Developing' }
+  if (avg >= 4.0)  return { letter: 'D', color: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/30',  desc: 'Needs focus' }
+  return               { letter: 'F', color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/30',     desc: 'At risk' }
+}
+
 interface CallRow {
   call_id: string
   call_type: string | null
@@ -66,67 +76,56 @@ interface CriterionStat {
   type: 'strength' | 'improvement'
 }
 
+interface Note {
+  id: string
+  content: string
+  created_at: string
+  author: { id: string; name: string; role: string } | null
+}
+
 // ─── component ────────────────────────────────────────────────
 export default function MemberReportPage() {
   const { id } = useParams<{ id: string }>()
+  const profile = useProfile()
   const [member, setMember] = useState<TeamMember & { departments?: { name: string } } | null>(null)
   const [calls, setCalls] = useState<CallRow[]>([])
   const [loading, setLoading] = useState(true)
   const [_trend, setTrend] = useState<any>(null)
+  const [notes, setNotes] = useState<Note[]>([])
+  const [noteText, setNoteText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!id) return
-
-    Promise.all([
-      supabase
-        .from('team_members')
-        .select('id, name, email, role, department_id, departments(name)')
-        .eq('id', id)
-        .single(),
-      supabase
-        .from('call_participants')
-        .select(`
-          calls(
-            id, call_type, status, recorded_at, duration_seconds,
-            clients(name),
-            scorecards(overall_score, summary, strengths, improvements)
-          )
-        `)
-        .eq('team_member_id', id)
-        .eq('is_external', false)
-        .limit(200),
-      api.trends.member(id).catch(() => null),
-    ]).then(([mRes, cpRes, trendData]) => {
-      if (mRes.data) setMember(mRes.data as any)
-      if (trendData) setTrend(trendData)
-
-      const rows: CallRow[] = []
-      for (const cp of (cpRes.data ?? []) as any[]) {
-        const c = cp.calls
-        if (!c) continue
-        const sc: Scorecard | null = c.scorecards?.[0] ?? null
-        rows.push({
-          call_id: c.id,
-          call_type: c.call_type,
-          status: c.status,
-          recorded_at: c.recorded_at,
-          duration_seconds: c.duration_seconds,
-          client_name: c.clients?.name ?? null,
-          overall_score: sc?.overall_score ?? null,
-          summary: sc?.summary ?? null,
-          strengths: sc?.strengths ?? null,
-          improvements: sc?.improvements ?? null,
-        })
-      }
-      rows.sort((a, b) => {
-        if (!a.recorded_at) return 1
-        if (!b.recorded_at) return -1
-        return new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
+    api.members.get(id)
+      .then(({ member, calls: rows, trend: trendData }: any) => {
+        setMember(member)
+        setCalls(rows ?? [])
+        if (trendData) setTrend(trendData)
+        setLoading(false)
       })
-      setCalls(rows)
-      setLoading(false)
-    })
+      .catch(() => setLoading(false))
+    api.members.notes(id).then((n: any) => setNotes(Array.isArray(n) ? n : [])).catch(() => {})
   }, [id])
+
+  async function submitNote() {
+    if (!noteText.trim() || !id) return
+    setSubmitting(true)
+    try {
+      const note = await api.members.addNote(id, noteText)
+      setNotes(prev => [note as Note, ...prev])
+      setNoteText('')
+    } catch {}
+    setSubmitting(false)
+  }
+
+  async function deleteNote(noteId: string) {
+    if (!id) return
+    try {
+      await api.members.deleteNote(id, noteId)
+      setNotes(prev => prev.filter(n => n.id !== noteId))
+    } catch {}
+  }
 
   // ── derived stats ──────────────────────────────────────────
   const scored = calls.filter(c => c.overall_score !== null)
@@ -195,6 +194,16 @@ export default function MemberReportPage() {
     .sort((a, b) => b.avg - a.avg)
 
   const initials = member?.name.split(' ').map(p => p[0]).slice(0, 2).join('') ?? '?'
+  const grade = getGrade(avgScore)
+
+  // Sales call performance (discovery, ads_intro, launch, follow_up)
+  const SALES_TYPES = ['discovery', 'ads_intro', 'launch', 'follow_up']
+  const salesCalls = calls.filter(c => SALES_TYPES.includes(c.call_type ?? ''))
+  const salesScored = salesCalls.filter(c => c.overall_score !== null)
+  const salesAvg = salesScored.length
+    ? +(salesScored.reduce((s, c) => s + c.overall_score!, 0) / salesScored.length).toFixed(1)
+    : null
+  const teamCalls = calls.filter(c => c.call_type === 'team')
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -236,7 +245,14 @@ export default function MemberReportPage() {
               )}
             </div>
           </div>
-          <ScoreRing score={avgScore} size="xl" showLabel />
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <ScoreRing score={avgScore} size="xl" showLabel />
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border ${grade.bg} ${grade.border}`}>
+              <Star className={`w-3 h-3 ${grade.color}`} />
+              <span className={`text-[13px] font-bold ${grade.color}`}>Grade {grade.letter}</span>
+              <span className={`text-[10px] ${grade.color} opacity-70`}>· {grade.desc}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -377,6 +393,108 @@ export default function MemberReportPage() {
         )}
       </div>
 
+      {/* ── Sales & Team Performance ── */}
+      {(salesCalls.length > 0 || teamCalls.length > 0) && (
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          {/* Sales performance */}
+          {salesCalls.length > 0 && (
+            <div className="card p-6">
+              <h3 className="font-semibold text-white text-[15px] mb-4 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-emerald-400" /> Sales Performance
+              </h3>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-[hsl(222,47%,5%)] rounded-lg px-3 py-2.5 border border-[hsl(222,32%,14%)]">
+                  <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-0.5">Sales Calls</p>
+                  <p className="text-xl font-bold text-white font-mono">{salesCalls.length}</p>
+                </div>
+                <div className="bg-[hsl(222,47%,5%)] rounded-lg px-3 py-2.5 border border-[hsl(222,32%,14%)]">
+                  <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-0.5">Sales Avg</p>
+                  <p className="text-xl font-bold font-mono" style={{ color: salesAvg !== null ? scoreHex(salesAvg) : '#64748b' }}>
+                    {salesAvg !== null ? `${salesAvg}` : '—'}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                {SALES_TYPES.map(type => {
+                  const typeCalls = salesCalls.filter(c => c.call_type === type)
+                  const typeSc    = typeCalls.filter(c => c.overall_score !== null)
+                  const typeAvg   = typeSc.length ? +(typeSc.reduce((s, c) => s + c.overall_score!, 0) / typeSc.length).toFixed(1) : null
+                  if (typeCalls.length === 0) return null
+                  return (
+                    <div key={type} className="flex items-center justify-between text-[12px]">
+                      <span className="text-gray-400 capitalize">{type.replace(/_/g, ' ')}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-600">{typeCalls.length} call{typeCalls.length !== 1 ? 's' : ''}</span>
+                        <span className="font-bold font-mono min-w-[40px] text-right" style={{ color: typeAvg !== null ? scoreHex(typeAvg) : '#64748b' }}>
+                          {typeAvg !== null ? `${typeAvg}/10` : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Quality / SLA */}
+          <div className="card p-6">
+            <h3 className="font-semibold text-white text-[15px] mb-4 flex items-center gap-2">
+              <BarChart2 className="w-4 h-4 text-violet-400" /> Quality Overview
+            </h3>
+            <div className="space-y-4">
+              {/* Grade gauge */}
+              <div className={`flex items-center gap-3 p-3 rounded-lg border ${grade.bg} ${grade.border}`}>
+                <div className={`text-4xl font-black ${grade.color}`}>{grade.letter}</div>
+                <div>
+                  <p className={`text-[13px] font-semibold ${grade.color}`}>{grade.desc}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    {avgScore !== null ? `Avg ${avgScore.toFixed(1)}/10` : 'Not enough data'}
+                    {scored.length > 0 ? ` across ${scored.length} scored call${scored.length !== 1 ? 's' : ''}` : ''}
+                  </p>
+                </div>
+              </div>
+              {/* SLA rate */}
+              {slaRate !== null && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[12px] text-gray-400">SLA Rate (≥7.0)</span>
+                    <span className="text-[12px] font-bold" style={{ color: slaRate >= 80 ? '#10b981' : slaRate >= 60 ? '#f59e0b' : '#ef4444' }}>
+                      {slaRate}%
+                    </span>
+                  </div>
+                  <div className="bg-[hsl(222,47%,5%)] rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${slaRate}%`,
+                        background: slaRate >= 80 ? '#10b981' : slaRate >= 60 ? '#f59e0b' : '#ef4444',
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-600 mt-1">Target: 80% of scored calls ≥ 7.0</p>
+                </div>
+              )}
+              {/* Team calls */}
+              {teamCalls.length > 0 && (
+                <div className="flex items-center justify-between text-[12px] pt-2 border-t border-[hsl(222,32%,15%)]">
+                  <span className="text-gray-400 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5" /> Team/internal calls
+                  </span>
+                  <span className="font-semibold text-slate-400">{teamCalls.length}</span>
+                </div>
+              )}
+              {/* Risk flag */}
+              {avgScore !== null && avgScore < 5.5 && (
+                <div className="flex items-start gap-2 p-2 rounded bg-red-500/5 border border-red-500/20">
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-red-300 leading-relaxed">Performance below coaching threshold. Recommend immediate 1-on-1 session.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Recent meetings table ── */}
       {calls.length > 0 && (
         <div className="card overflow-hidden mb-6">
@@ -449,7 +567,7 @@ export default function MemberReportPage() {
 
       {/* ── Coaching insights ── */}
       {criteriaStats.filter(c => c.type === 'improvement').length > 0 && (
-        <div className="card p-6">
+        <div className="card p-6 mb-6">
           <h3 className="font-semibold text-white text-[15px] mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-blue-400" /> Coaching Insights
           </h3>
@@ -467,6 +585,75 @@ export default function MemberReportPage() {
           </div>
         </div>
       )}
+
+      {/* ── Manager Notes ── */}
+      <div className="card p-6">
+        <h3 className="font-semibold text-white text-[15px] mb-4 flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-purple-400" /> Manager Notes
+        </h3>
+
+        {/* Write note — admin and manager only */}
+        {profile && profile.role !== 'rep' && (
+          <div className="mb-5">
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Write a coaching note…"
+              rows={3}
+              className="w-full bg-[hsl(222,47%,5%)] border border-[hsl(222,32%,20%)] rounded-lg px-3 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 resize-none focus:outline-none focus:border-purple-500/50 transition"
+            />
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={submitNote}
+                disabled={!noteText.trim() || submitting}
+                className="px-4 py-1.5 rounded-md text-[12px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                {submitting ? 'Saving…' : 'Add Note'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Notes list */}
+        {notes.length === 0 ? (
+          <p className="text-gray-600 text-[12px] italic py-4 text-center">No notes yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {notes.map(note => {
+              const authorInitials = note.author?.name?.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() ?? '?'
+              const canDelete = profile && (profile.role === 'admin' || profile.id === note.author?.id)
+              return (
+                <div key={note.id} className="bg-[hsl(222,47%,5%)] border border-[hsl(222,32%,18%)] rounded-lg px-4 py-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-md bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/20 flex items-center justify-center text-purple-400 text-[10px] font-bold shrink-0 mt-0.5">
+                      {authorInitials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-semibold text-gray-200">{note.author?.name ?? 'Unknown'}</span>
+                          <span className="text-[10px] text-gray-600">·</span>
+                          <span className="text-[11px] text-gray-500">{formatDateTime(note.created_at)}</span>
+                        </div>
+                        {canDelete && (
+                          <button
+                            onClick={() => deleteNote(note.id)}
+                            className="text-gray-600 hover:text-red-400 transition shrink-0"
+                            title="Delete note"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[13px] text-gray-300 mt-1.5 leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

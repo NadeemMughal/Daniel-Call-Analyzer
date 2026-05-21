@@ -1,98 +1,105 @@
-﻿{
+{
   "name": "02 - Classify Call",
   "nodes": [
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000001",
+      "id": "6edbd68a-f2c7-469d-8cda-ad4f05ed4191",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [-944, 1040],
+      "webhookId": "dc45a3d2-5a55-4599-84ea-468e83e03e38",
       "parameters": {
         "httpMethod": "POST",
         "path": "call-classify",
-        "responseMode": "lastNode",
+        "responseMode": "onReceived",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "id": "18dd43aa-eeb1-4f31-9658-fcb8147c812f",
       "name": "Get Call",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [-736, 1040],
       "parameters": {
-        "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "id", "value": "=eq.{{ $json.call_id }}" },
+            { "name": "id", "value": "=eq.{{ $json.body.call_id }}" },
             { "name": "select", "value": "*" }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
           ]
         },
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000003",
+      "id": "b9f2d8a1-4c3e-4a5f-8e7b-1d2c3f4e5a6b",
+      "name": "Build Groq Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-512, 1040],
+      "parameters": {
+        "jsCode": "const call = ($input.all()[0]?.json || [])[0] || {};\nconst transcript = (call.transcript_raw || '').substring(0, 2000);\n\nreturn [{\n  json: {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 300,\n    system: 'You are a call classifier for a sales coaching system.\\nReturn ONLY valid JSON, no other text.\\n\\ncall_type must be one of: discovery, ads_intro, launch, follow_up, team, other\\n\\nResponse schema: {\"call_type\": \"discovery\", \"confidence\": 0.95, \"reasoning\": \"brief explanation\"}',\n    messages: [\n      {\n        role: 'user',\n        content: 'Classify this sales call transcript:\\n\\n' + (transcript || 'No transcript available')\n      }\n    ]\n  }\n}];"
+      }
+    },
+    {
+      "id": "28787ce8-1ee3-4e8a-880e-79e395748a87",
       "name": "Classify with Groq",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [680, 300],
+      "position": [-288, 1040],
       "parameters": {
         "method": "POST",
-        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer ={{ $env.GROQ_API_KEY }}" },
-            { "name": "content-type", "value": "application/json" }
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"max_tokens\": 300,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a call classifier for a sales coaching system at WeBuildTrades, a UK marketing agency.\\n\\nCall types:\\n- discovery: First call with a new prospect to understand their business and pain points\\n- ads_intro: Introducing advertising services (Facebook/Google ads) to a prospect\\n- launch: Onboarding or launch call with a new client\\n- follow_up: Follow-up call with an existing client\\n- team: Internal team meeting (no prospect present)\\n- other: Anything that does not fit the above\\n\\nRespond with valid JSON only. No markdown, no explanation. Format:\\n{\\\"call_type\\\": \\\"discovery\\\"|\\\"ads_intro\\\"|\\\"launch\\\"|\\\"follow_up\\\"|\\\"team\\\"|\\\"other\\\", \\\"confidence\\\": 0.0-1.0, \\\"reasoning\\\": \\\"one sentence\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Classify this sales call. Here are the first 2000 characters of the transcript:\\n\\n{{ ($('Get Call').item.json[0].transcript_raw || '').substring(0, 2000) }}\"\n    }\n  ]\n}"
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000004",
+      "id": "c90dd3c8-5e5a-444b-a6c5-ba18ecbabee7",
       "name": "Parse Classification",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 300],
+      "position": [-64, 1040],
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Webhook').first().json.call_id;\nconst validTypes = ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'];\n\nlet classification;\ntry {\n  classification = JSON.parse(responseText);\n} catch (e) {\n  classification = { call_type: 'other', confidence: 0, reasoning: 'parse error: ' + responseText.substring(0, 100) };\n}\n\nif (!validTypes.includes(classification.call_type)) {\n  classification.call_type = 'other';\n}\n\nreturn [{ json: { ...classification, call_id: callId } }];"
+        "jsCode": "const responseText = $input.first().json.content?.[0]?.text || '';\nconst callId = $('Webhook').first().json.body.call_id;\nconst validTypes = ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'];\n\nlet cleanText = responseText.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\nlet classification;\ntry {\n  classification = JSON.parse(cleanText);\n} catch (e) {\n  classification = { call_type: 'other', confidence: 0, reasoning: 'parse error: ' + responseText.substring(0, 100) };\n}\n\nif (!validTypes.includes(classification.call_type)) {\n  classification.call_type = 'other';\n}\n\nreturn [{ json: { ...classification, call_id: callId } }];"
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000005",
+      "id": "2596800f-d2b1-405f-ac59-dae9aa539da1",
       "name": "Match Client",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 300],
+      "position": [160, 1040],
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Stub: LeadHub/GoHighLevel client matching will be added in V1.1\nconst callId = $('Parse Classification').item.json.call_id;\nreturn [{ json: { call_id: callId, client_id: null } }];"
+        "jsCode": "const callId = $('Parse Classification').item.json.call_id;\nreturn [{ json: { call_id: callId, client_id: null } }];"
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000006",
+      "id": "61ab5354-5f56-4704-b063-e5c891697415",
       "name": "Update Call",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1300, 300],
+      "position": [384, 1040],
       "parameters": {
         "method": "PATCH",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
@@ -105,27 +112,25 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={\n  \"call_type\": \"{{ $('Parse Classification').item.json.call_type }}\",\n  \"status\": \"processing\"\n}"
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ { call_type: $('Parse Classification').first().json.call_type, status: 'processing' } }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000010",
+      "id": "591e9304-62f7-48cf-85bd-314ab23cc5c6",
       "name": "Is Team Call?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1500, 300],
+      "position": [608, 1040],
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
@@ -138,85 +143,81 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000011",
+      "id": "7b7c0034-56cb-4188-b7db-f0bf3c207692",
       "name": "Trigger Meeting Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1700, 160],
+      "position": [832, 896],
       "parameters": {
         "method": "POST",
         "url": "https://n8nserver.metaviz.pro/webhook/call-meeting-summary",
         "sendHeaders": true,
-        "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={ \"call_id\": \"{{ $('Parse Classification').item.json.call_id }}\" }"
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ { call_id: $('Parse Classification').first().json.call_id } }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000007",
+      "id": "77346ca2-2ad5-4f03-b300-df9b8e635ffc",
       "name": "Trigger Rule Engine",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1700, 380],
+      "position": [832, 1120],
       "parameters": {
         "method": "POST",
         "url": "https://n8nserver.metaviz.pro/webhook/call-rule-engine",
         "sendHeaders": true,
-        "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={ \"call_id\": \"{{ $('Parse Classification').item.json.call_id }}\" }"
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ { call_id: $('Parse Classification').first().json.call_id } }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0002-0002-0002-000000000008",
+      "id": "12d631b5-f81d-494c-8dc2-7085f8a99674",
       "name": "Trigger Scorecard",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1700, 520],
+      "position": [832, 1264],
       "parameters": {
         "method": "POST",
         "url": "https://n8nserver.metaviz.pro/webhook/call-scorecard",
         "sendHeaders": true,
-        "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={ \"call_id\": \"{{ $('Parse Classification').item.json.call_id }}\" }"
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ { call_id: $('Parse Classification').first().json.call_id } }}",
         "options": {}
-      }
-    },
-    {
-      "id": "a1b2c3d4-0002-0002-0002-000000000009",
-      "name": "Respond 200",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1940, 300],
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"ok\": true, \"call_type\": \"{{ $('Parse Classification').item.json.call_type }}\" }",
-        "options": { "responseCode": 200 }
       }
     }
   ],
   "connections": {
     "Webhook": { "main": [[{ "node": "Get Call", "type": "main", "index": 0 }]] },
-    "Get Call": { "main": [[{ "node": "Classify with Groq", "type": "main", "index": 0 }]] },
+    "Get Call": { "main": [[{ "node": "Build Groq Request", "type": "main", "index": 0 }]] },
+    "Build Groq Request": { "main": [[{ "node": "Classify with Groq", "type": "main", "index": 0 }]] },
     "Classify with Groq": { "main": [[{ "node": "Parse Classification", "type": "main", "index": 0 }]] },
     "Parse Classification": { "main": [[{ "node": "Match Client", "type": "main", "index": 0 }]] },
     "Match Client": { "main": [[{ "node": "Update Call", "type": "main", "index": 0 }]] },
@@ -229,10 +230,10 @@
           { "node": "Trigger Scorecard", "type": "main", "index": 0 }
         ]
       ]
-    },
-    "Trigger Meeting Summary": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] },
-    "Trigger Rule Engine": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] },
-    "Trigger Scorecard": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+    }
   },
-  "settings": { "executionOrder": "v1" }
+  "pinData": {},
+  "meta": {
+    "instanceId": "b3b467644dfa8e0c6797928cc6d8bf68d9415ef612f9ba2a0d45772e9aff0f75"
+  }
 }
