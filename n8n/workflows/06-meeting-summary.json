@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "06 - Meeting Summary Agent",
   "nodes": [
     {
@@ -10,7 +10,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "call-meeting-summary",
-        "responseMode": "lastNode",
+        "responseMode": "onReceived",
         "options": {}
       }
     },

@@ -188,28 +188,29 @@ ok = 0; fail = 0; skip = 0
 for i, m in enumerate(matches, 1):
     rid = m['recording_id']
     try:
-        tdata     = fathom_get(f'/recordings/{rid}/transcript')
-        utterances = tdata.get('utterances', [])
+        tdata = fathom_get(f'/recordings/{rid}/transcript')
+        # Fathom returns either 'utterances' or 'segments' depending on API version
+        raw_items = tdata.get('utterances') or tdata.get('segments', [])
 
-        if not utterances:
+        if not raw_items:
             skip += 1
             if i <= 10 or i % 50 == 0:
-                print(f"  [{i}/{len(matches)}] SKIP  {m['call_id'][:8]} rid={rid} — 0 utterances")
+                print(f"  [{i}/{len(matches)}] SKIP  {m['call_id'][:8]} rid={rid} — 0 utterances/segments")
             continue
 
-        full_text = '\n'.join(
-            f"{u.get('speaker', 'Unknown')}: {u.get('text', '')}"
-            for u in utterances
-        )
-        segments  = [
-            {
-                'speaker':    u.get('speaker', 'Unknown'),
-                'start_time': u.get('start_time', 0),
-                'end_time':   u.get('end_time', 0),
-                'text':       u.get('text', ''),
-            }
-            for u in utterances
-        ]
+        def norm(u):
+            # Normalize across both API shapes:
+            # utterances: speaker, text, start_time, end_time
+            # segments:   speaker / speaker_name, content / text, start / start_time, end / end_time
+            speaker = u.get('speaker') or u.get('speaker_name', 'Unknown')
+            text    = u.get('text') or u.get('content', '')
+            start   = u.get('start_time') if u.get('start_time') is not None else u.get('start', 0)
+            end     = u.get('end_time')   if u.get('end_time')   is not None else u.get('end', 0)
+            return {'speaker': speaker, 'start_time': start, 'end_time': end, 'text': text}
+
+        normalized = [norm(u) for u in raw_items]
+        full_text = '\n'.join(f"{u['speaker']}: {u['text']}" for u in normalized)
+        segments  = normalized
 
         status = sb_patch(
             'calls',
@@ -237,7 +238,7 @@ for i, m in enumerate(matches, 1):
 
 print()
 print("=" * 60)
-print(f"Done!  updated={ok}  failed={fail}  skipped={skip} (0 utterances)")
+print(f"Done!  updated={ok}  failed={fail}  skipped={skip} (no transcript data)")
 print()
 if no_match_in_sb:
     print(f"NOTE: {len(no_match_in_sb)} Fathom meetings have no matching Supabase call.")

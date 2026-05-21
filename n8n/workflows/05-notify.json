@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "05 - Notify Participants",
   "nodes": [
     {
@@ -10,7 +10,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "call-notify",
-        "responseMode": "lastNode",
+        "responseMode": "onReceived",
         "options": {}
       }
     },
