@@ -22,6 +22,7 @@ export const api = {
     dashboard:   () => authFetch('/analytics/dashboard'),
   },
   members: {
+    list:       () => authFetch('/members') as Promise<any[]>,
     me:         () => authFetch('/members/me'),
     get:        (id: string) => authFetch(`/members/${id}`),
     notes:      (id: string) => authFetch(`/members/${id}/notes`),
@@ -29,6 +30,15 @@ export const api = {
     deleteNote: (memberId: string, noteId: string) => authFetch(`/members/${memberId}/notes/${noteId}`, { method: 'DELETE' }),
   },
   calls: {
+    list: (params: { type?: string; status?: string; dept?: string; limit?: number } = {}) => {
+      const qs = new URLSearchParams()
+      if (params.type)   qs.set('type',   params.type)
+      if (params.status) qs.set('status', params.status)
+      if (params.dept)   qs.set('dept',   params.dept)
+      if (params.limit)  qs.set('limit',  String(params.limit))
+      const q = qs.toString()
+      return authFetch(`/calls${q ? '?' + q : ''}`) as Promise<any[]>
+    },
     get: (id: string) => authFetch(`/calls/${id}`),
   },
   clients: {

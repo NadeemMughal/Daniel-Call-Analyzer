@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import { formatDuration, formatDateTime } from '@/lib/utils'
-import type { Client, Call } from '@/types'
+import type { Client } from '@/types'
 import ScoreRing from '@/components/ScoreRing'
 import { ChevronLeft, Building2, ArrowRight, Activity, CheckCircle, Clock, TrendingUp } from 'lucide-react'
 
@@ -29,7 +29,16 @@ function scoreHex(s: number | null) {
   return '#ef4444'
 }
 
-type CallRow = Call & { host_name?: string | null }
+interface CallRow {
+  id: string
+  call_type: string | null
+  status: string
+  recorded_at: string | null
+  duration_seconds: number | null
+  host_name: string | null
+  overall_score: number | null
+  summary: string | null
+}
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -39,34 +48,18 @@ export default function ClientDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([
-      supabase.from('clients').select('id, name, leadhub_id').eq('id', id).single(),
-      supabase
-        .from('calls')
-        .select(`
-          id, call_type, status, recorded_at, duration_seconds,
-          call_participants(id, role, is_external, team_members(id, name)),
-          scorecards(id, overall_score, summary)
-        `)
-        .eq('client_id', id)
-        .order('recorded_at', { ascending: false })
-        .limit(200),
-    ]).then(([clientRes, callsRes]) => {
-      if (clientRes.data) setClient(clientRes.data as Client)
-      if (callsRes.data) {
-        const enriched = (callsRes.data as any[]).map(c => {
-          const host = c.call_participants?.find((p: any) => p.role === 'host' && !p.is_external)
-          return { ...c, host_name: host?.team_members?.name ?? null }
-        })
-        setCalls(enriched as CallRow[])
-      }
-      setLoading(false)
-    })
+    api.clients.get(id)
+      .then(({ client: c, calls: rows }: any) => {
+        if (c) setClient(c as Client)
+        if (rows) setCalls(rows as CallRow[])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [id])
 
-  const scored = calls.filter(c => c.scorecards?.[0]?.overall_score != null)
+  const scored = calls.filter(c => c.overall_score != null)
   const avgScore = scored.length
-    ? scored.reduce((s, c) => s + (c.scorecards![0].overall_score as number), 0) / scored.length
+    ? scored.reduce((s, c) => s + c.overall_score!, 0) / scored.length
     : null
 
   if (loading) return (
@@ -151,56 +144,52 @@ export default function ClientDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {calls.map(c => {
-                const score = c.scorecards?.[0]?.overall_score ?? null
-                const summary = c.scorecards?.[0]?.summary ?? null
-                return (
-                  <tr key={c.id} className="border-t border-[hsl(222,32%,12%)] hover:bg-white/[0.02] transition group">
-                    <td className="px-5 py-3.5 text-[12px] text-gray-400 whitespace-nowrap">
-                      {c.recorded_at ? formatDateTime(c.recorded_at) : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {c.call_type ? (
-                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${CALL_TYPE_TINT[c.call_type] ?? CALL_TYPE_TINT.other}`}>
-                          {c.call_type.replace(/_/g, ' ')}
-                        </span>
-                      ) : <span className="text-gray-600 text-[12px]">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5 text-[12px] text-gray-300 max-w-[120px] truncate">
-                      {(c as any).host_name ?? <span className="text-gray-600">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {score !== null ? (
-                        <div className="flex items-center gap-1.5">
-                          <ScoreRing score={score} size="sm" />
-                          <span className="text-[12px] font-bold font-mono" style={{ color: scoreHex(score) }}>
-                            {score.toFixed(1)}
-                          </span>
-                        </div>
-                      ) : <span className="text-gray-600 text-[12px]">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5 text-[12px] text-gray-400 font-mono">
-                      {c.duration_seconds ? formatDuration(c.duration_seconds) : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${STATUS_TINT[c.status] ?? STATUS_TINT.pending}`}>
-                        {c.status}
+              {calls.map(c => (
+                <tr key={c.id} className="border-t border-[hsl(222,32%,12%)] hover:bg-white/[0.02] transition group">
+                  <td className="px-5 py-3.5 text-[12px] text-gray-400 whitespace-nowrap">
+                    {c.recorded_at ? formatDateTime(c.recorded_at) : '—'}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {c.call_type ? (
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${CALL_TYPE_TINT[c.call_type] ?? CALL_TYPE_TINT.other}`}>
+                        {c.call_type.replace(/_/g, ' ')}
                       </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-[12px] text-gray-500 max-w-[200px] truncate">
-                      {summary ? summary.split('.')[0].slice(0, 60) : <span className="italic">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <Link
-                        to={`/calls/${c.id}`}
-                        className="inline-flex items-center gap-1 text-[12px] text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        View <ArrowRight className="w-3 h-3" />
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })}
+                    ) : <span className="text-gray-600 text-[12px]">—</span>}
+                  </td>
+                  <td className="px-5 py-3.5 text-[12px] text-gray-300 max-w-[120px] truncate">
+                    {c.host_name ?? <span className="text-gray-600">—</span>}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {c.overall_score !== null ? (
+                      <div className="flex items-center gap-1.5">
+                        <ScoreRing score={c.overall_score} size="sm" />
+                        <span className="text-[12px] font-bold font-mono" style={{ color: scoreHex(c.overall_score) }}>
+                          {c.overall_score.toFixed(1)}
+                        </span>
+                      </div>
+                    ) : <span className="text-gray-600 text-[12px]">—</span>}
+                  </td>
+                  <td className="px-5 py-3.5 text-[12px] text-gray-400 font-mono">
+                    {c.duration_seconds ? formatDuration(c.duration_seconds) : '—'}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${STATUS_TINT[c.status] ?? STATUS_TINT.pending}`}>
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-[12px] text-gray-500 max-w-[200px] truncate">
+                    {c.summary ? c.summary.split('.')[0].slice(0, 60) : <span className="italic">—</span>}
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <Link
+                      to={`/calls/${c.id}`}
+                      className="inline-flex items-center gap-1 text-[12px] text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 transition"
+                    >
+                      View <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

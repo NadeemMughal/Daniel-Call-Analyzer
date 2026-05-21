@@ -4,6 +4,16 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js'
 
 const router = Router()
 
+// GET /members — list all team members (for dropdowns, selectors)
+router.get('/', requireAuth, async (_req, res) => {
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('id, name, email, role, department_id, departments(name)')
+    .order('name')
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data ?? [])
+})
+
 // GET /members/me — current user's profile
 router.get('/me', requireAuth, async (req: AuthRequest, res) => {
   const { data, error } = await supabase

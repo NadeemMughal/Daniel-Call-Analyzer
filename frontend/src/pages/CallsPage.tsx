@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import { formatDuration, formatDateTime } from '@/lib/utils'
 import type { Call, CallType, CallStatus } from '@/types'
 import { Search, Clock, User, ArrowRight, X } from 'lucide-react'
@@ -75,26 +76,21 @@ export default function CallsPage() {
 
   const fetchCalls = useCallback(async () => {
     setLoading(true)
-    let q = supabase
-      .from('calls')
-      .select(`id, call_type, status, recorded_at, duration_seconds, created_at, department_id,
-        clients(id, name), departments(id, name),
-        call_participants(id, role, is_external, team_members(id, name, email)),
-        scorecards(id, overall_score, scorecard_evidence(criterion_key, quote))`)
-      .order('recorded_at', { ascending: false })
-      .limit(100)
-    if (typeFilter) q = q.eq('call_type', typeFilter)
-    if (statusFilter) q = q.eq('status', statusFilter)
-    if (deptId) q = q.eq('department_id', deptId)
-    const { data } = await q
-    if (data) {
-      // Extract meeting_phase from evidence rows onto each call for easy access
-      const enriched = (data as any[]).map(c => {
+    try {
+      const data = await api.calls.list({
+        type:   typeFilter || undefined,
+        status: statusFilter || undefined,
+        dept:   deptId || undefined,
+        limit:  200,
+      })
+      const enriched = data.map((c: any) => {
         const ev = c.scorecards?.[0]?.scorecard_evidence ?? []
         const phaseRow = ev.find((e: any) => e.criterion_key === 'meeting_phase')
         return { ...c, meeting_phase: phaseRow?.quote?.trim()?.toLowerCase() ?? null }
       })
-      setCalls(enriched as unknown as CallWithPhase[])
+      setCalls(enriched)
+    } catch {
+      setCalls([])
     }
     setLoading(false)
   }, [typeFilter, statusFilter, deptId])

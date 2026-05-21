@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import type { TeamMember, CallType } from '@/types'
 import ScoreRing from '@/components/ScoreRing'
@@ -42,46 +42,35 @@ export default function TrendsPage() {
   const [overallStats, setOverallStats] = useState<{ total: number; avg: number | null; topPerformer: string | null }>({ total: 0, avg: null, topPerformer: null })
 
   useEffect(() => {
-    supabase.from('team_members').select('id, name, email, role, department_id').order('name')
-      .then(({ data }) => {
-        if (data) {
-          setMembers(data as TeamMember[])
-          if (data.length > 0) setSelectedMember(data[0].id)
-        }
-      })
-    // Org-wide stats
-    supabase.from('scorecards').select('overall_score').not('overall_score', 'is', null)
-      .then(({ data }) => {
-        if (data && data.length) {
-          const scores = data.map(d => d.overall_score as number).filter(Boolean)
-          const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null
-          setOverallStats(s => ({ ...s, total: scores.length, avg }))
-        }
-      })
+    api.members.list().then(data => {
+      if (data?.length) {
+        setMembers(data as TeamMember[])
+        setSelectedMember(data[0].id)
+      }
+    }).catch(() => {})
+    api.analytics.dashboard().then(dash => {
+      if (dash?.avgScore != null) {
+        setOverallStats(s => ({ ...s, total: dash.totalCalls ?? 0, avg: dash.avgScore }))
+      }
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
     if (!selectedMember) return
     setLoading(true)
-    supabase
-      .from('call_participants')
-      .select(`call_id, calls(id, recorded_at, call_type, scorecards(overall_score))`)
-      .eq('team_member_id', selectedMember)
-      .eq('is_external', false)
-      .then(({ data }) => {
-        if (!data) { setLoading(false); return }
-        const rows: TrendRow[] = []
-        for (const p of data) {
-          const call = (p as any).calls
-          if (!call) continue
-          const score = call.scorecards?.[0]?.overall_score
-          if (score == null) continue
-          rows.push({ call_id: call.id, recorded_at: call.recorded_at, overall_score: score, call_type: call.call_type })
-        }
-        rows.sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-        setTrends(rows)
-        setLoading(false)
-      })
+    api.members.get(selectedMember).then(({ calls: memberCalls }) => {
+      const rows: TrendRow[] = (memberCalls ?? [])
+        .filter((c: any) => c.overall_score != null)
+        .map((c: any) => ({
+          call_id:       c.call_id,
+          recorded_at:   c.recorded_at,
+          overall_score: c.overall_score,
+          call_type:     c.call_type,
+        }))
+      rows.sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
+      setTrends(rows)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [selectedMember])
 
   const avg = trends.length > 0 ? trends.reduce((s, t) => s + t.overall_score, 0) / trends.length : null

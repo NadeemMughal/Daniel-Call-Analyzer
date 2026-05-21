@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import type { Rubric } from '@/types'
 const WBT_TOKEN = () => localStorage.getItem('wbt_auth_token') || ''
 import { Save, Plus, Trash2, BookOpen, Sparkles, Loader2, Check, AlertCircle } from 'lucide-react'
@@ -32,10 +32,10 @@ export default function RubricPage() {
   const [view, setView] = useState<'editor' | 'json'>('editor')
 
   useEffect(() => {
-    supabase.from('rubrics').select('*').eq('is_active', true).single().then(({ data }) => {
+    api.rubric.active().then((data: any) => {
       if (data) { setRubric(data as Rubric); setContent(JSON.stringify(data.content, null, 2)) }
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   async function handleAssist() {
@@ -86,10 +86,14 @@ export default function RubricPage() {
       alert('Invalid JSON — please check your edits.'); return
     }
     setSaving(true)
-    const { error } = await supabase.from('rubrics').update({ content: parsed }).eq('id', rubric.id)
-    setSaving(false)
-    if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2000) }
-    else alert('Save failed: ' + error.message)
+    try {
+      await api.rubric.update(rubric.id, { content: parsed })
+      setSaved(true); setTimeout(() => setSaved(false), 2000)
+    } catch (err: any) {
+      alert('Save failed: ' + (err?.message ?? 'Unknown error'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) return <div className="p-12 text-gray-500 text-sm">Loading rubric…</div>
