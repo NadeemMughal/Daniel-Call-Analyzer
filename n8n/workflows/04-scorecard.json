@@ -1,334 +1,645 @@
-{
-  "name": "04 - LLM Scorecard",
-  "nodes": [
-    {
-      "id": "88a1826b-b929-40bb-9fe9-b8c0033fe8de",
-      "name": "Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [240, 300],
-      "webhookId": "447f710a-8536-425d-b231-a685f33a532a",
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "call-scorecard",
-        "responseMode": "onReceived",
-        "options": {}
-      }
-    },
-    {
-      "id": "6ac63c7f-f306-4b24-8147-e127d70210be",
-      "name": "Get Call",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [460, 220],
-      "parameters": {
-        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            { "name": "id", "value": "=eq.{{ $json.body.call_id }}" },
-            { "name": "select", "value": "*" }
-          ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "a874a493-0261-452d-9838-96f47cc9a119",
-      "name": "Get Active Rubric",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [460, 420],
-      "parameters": {
-        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rubrics",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            { "name": "is_active", "value": "eq.true" },
-            { "name": "select", "value": "*" },
-            { "name": "limit", "value": "1" }
-          ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "298e732f-3441-4fda-9eef-41bdc0c4e91e",
-      "name": "Check Transcript",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [680, 320],
-      "parameters": {
-        "jsCode": "const rawCall = $('Get Call').first().json;\nconst call = Array.isArray(rawCall) ? (rawCall[0] || {}) : (rawCall || {});\nconst callId = $('Webhook').first().json.body.call_id;\nconst transcript = (call.transcript_raw || '').trim();\nconst hasTranscript = transcript.length >= 50;\nreturn [{ json: { call_id: callId, has_transcript: hasTranscript } }];"
-      }
-    },
-    {
-      "id": "dadc987c-3f43-411b-90f0-f89e04c01e97",
-      "name": "Has Transcript?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [900, 320],
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "cond-has-transcript",
-              "leftValue": "={{ $json.has_transcript }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "e63bd417-4c5b-40bd-8b90-eb870509bffd",
-      "name": "Mark No Transcript",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1100, 480],
-      "parameters": {
-        "method": "PATCH",
-        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
-        "sendQuery": true,
-        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $json.call_id }}" }] },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { status: 'pending' } }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "38f04b6d-e29c-499d-b91a-9e660b841c40",
-      "name": "Build Score Request",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1100, 180],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const rawCall = $('Get Call').first().json;\nconst call = Array.isArray(rawCall) ? (rawCall[0] || {}) : (rawCall || {});\nconst rawRubric = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubric) ? (rawRubric[0] || {}) : (rawRubric || {});\nconst transcript = (call.transcript_raw || 'No transcript available.').substring(0, 6000);\nconst rubricContent = JSON.stringify(rubric.content || {}, null, 2).substring(0, 1500);\n\nconst FIELDS = [\n  'overall_score: number 0-10 (weighted avg of rubric criteria; for team/internal calls score on meeting quality)',\n  'summary: string — 2-3 sentence executive summary of the whole call',\n  'meeting_phase: one of: discovery, onboarding, kick_off, ai_onboarding, strategy_review, status_update, sales_pitch, demo, training, internal_sync, one_on_one, project_review, quarterly_review, closing_call, renewal, escalation, feedback_session, content_review, other',\n  'attendees: array of strings — each entry: Name (email if visible) — role/company',\n  'talk_time_breakdown: array of objects {speaker, seconds (estimate), percentage} — percentages must sum to 100',\n  'key_points: array of strings — main points discussed',\n  'decisions: array of strings — decisions made during the call',\n  'action_items: array of strings — format: [HIGH/MEDIUM/LOW] Task description — Owner: Name — Due: timeframe',\n  'next_steps: array of strings',\n  'open_questions: array of strings — questions raised but not resolved',\n  'risks: array of strings — concerns or risks mentioned',\n  'suggestions: array of strings — ideas or suggestions raised',\n  'projects: array of strings — specific projects or campaigns discussed',\n  'banned_phrases: array of strings — filler or weak phrases actually spoken (e.g. to be honest, um, basically, just)',\n  'strengths: array of {criterion, score 0-10, description, evidence_quote (exact transcript phrase), timestamp_seconds or null}',\n  'improvements: array of {criterion, score 0-10, description, evidence_quote (exact transcript phrase), timestamp_seconds or null}',\n  'coaching_priorities: top 3 only — array of {priority 1-3, area, what_happened (brief quote or description), what_to_do_instead (specific actionable advice), impact (why this matters)} — for sales calls only, skip for team/internal',\n  'meeting_effectiveness: object {score 0-10, agenda_clarity, decisions_ratio, action_coverage, focus_score 0-10, summary} — fill for ALL call types'\n].join('\\n');\n\nconst systemPrompt = [\n  'You are an expert sales coach and meeting intelligence system for WeBuildTrades, a UK marketing agency for trade businesses.',\n  '',\n  'Analyze the call transcript thoroughly and return ONE JSON object. No markdown fences, no explanation — ONLY the JSON.',\n  '',\n  'Sales Playbook (active rubric):',\n  rubricContent,\n  '',\n  'Required fields (include ALL, use empty array [] when nothing relevant for that section):',\n  FIELDS,\n  '',\n  'Rules:',\n  '- evidence_quote must be EXACT phrases from the transcript',\n  '- coaching_priorities: include only for client-facing sales calls (discovery, ads_intro, launch, follow_up)',\n  '- meeting_effectiveness: always include for every call type',\n  '- Return [] for list sections with nothing relevant — never omit a field'\n].join('\\n');\n\nreturn [{ json: { systemPrompt, userMessage: 'Analyze this call transcript:\\n\\n' + transcript } }];"
-      }
-    },
-    {
-      "id": "fe62fc17-c285-4032-aab8-a36498bd49a8",
-      "name": "Score with Anthropic",
-      "type": "@n8n/n8n-nodes-langchain.anthropic",
-      "typeVersion": 1,
-      "position": [1320, 180],
-      "credentials": {
-        "anthropicApi": {
-          "id": "I2r0zHnMY4qLOwGn",
-          "name": "Anthropic account 3"
-        }
-      },
-      "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "claude-sonnet-4-6",
-          "mode": "id"
-        },
-        "messages": {
-          "values": [
-            {
-              "role": "user",
-              "content": "={{ $json.userMessage }}"
-            }
-          ]
-        },
-        "options": {
-          "systemMessage": "={{ $json.systemPrompt }}",
-          "maxTokensToSample": 4000
-        }
-      }
-    },
-    {
-      "id": "11c0bafb-9812-4606-a0e4-b946593e7966",
-      "name": "Parse Scorecard",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1540, 180],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const responseText = ($input.first().json.text || $input.first().json.content?.[0]?.text || '').trim();\nconst callId = $('Webhook').first().json.body.call_id;\nconst rawRubricPS = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubricPS) ? (rawRubricPS[0] || null) : (rawRubricPS || null);\n\nlet cleanText = responseText.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\nlet sc;\ntry {\n  sc = JSON.parse(cleanText);\n} catch (e) {\n  throw new Error('Failed to parse LLM scorecard: ' + responseText.substring(0, 300));\n}\n\nif (typeof sc.overall_score !== 'number') sc.overall_score = 0;\nif (!Array.isArray(sc.strengths)) sc.strengths = [];\nif (!Array.isArray(sc.improvements)) sc.improvements = [];\nif (!sc.summary) sc.summary = '';\n\nconst allEvidence = [];\n\nfor (const s of sc.strengths) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\nfor (const s of sc.improvements) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\n\nif (sc.meeting_phase) allEvidence.push({ criterion_key: 'meeting_phase', quote: String(sc.meeting_phase).trim(), timestamp_seconds: null });\n\nfor (const a of (sc.attendees || [])) allEvidence.push({ criterion_key: 'attendee', quote: String(a), timestamp_seconds: null });\n\nif (sc.talk_time_breakdown && sc.talk_time_breakdown.length > 0) {\n  allEvidence.push({ criterion_key: 'talk_time_breakdown', quote: JSON.stringify(sc.talk_time_breakdown), timestamp_seconds: null });\n}\n\nconst LISTS = [\n  ['key_points','key_point'],['decisions','decision'],['action_items','action_item'],\n  ['next_steps','next_step'],['open_questions','open_question'],['risks','risk'],\n  ['suggestions','suggestion'],['projects','project'],['banned_phrases','banned_phrase']\n];\nfor (const [field, key] of LISTS) {\n  for (const item of (sc[field] || [])) allEvidence.push({ criterion_key: key, quote: String(item), timestamp_seconds: null });\n}\n\nfor (const p of (sc.coaching_priorities || [])) {\n  if (p.priority >= 1 && p.priority <= 3) allEvidence.push({ criterion_key: 'coaching_priority_' + p.priority, quote: JSON.stringify(p), timestamp_seconds: null });\n}\n\nif (sc.meeting_effectiveness) allEvidence.push({ criterion_key: 'meeting_effectiveness', quote: JSON.stringify(sc.meeting_effectiveness), timestamp_seconds: null });\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric ? rubric.id : null,\n  overall_score: Math.round(sc.overall_score * 10) / 10,\n  summary: sc.summary,\n  strengths: sc.strengths,\n  improvements: sc.improvements,\n  llm_model: 'claude-sonnet-4-6',\n  all_evidence: allEvidence\n} }];"
-      }
-    },
-    {
-      "id": "6fdfab3b-a506-436f-a183-48811d372fa0",
-      "name": "Insert Scorecard",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1760, 180],
-      "parameters": {
-        "method": "POST",
-        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { call_id: $json.call_id, rubric_id: $json.rubric_id, overall_score: $json.overall_score, summary: $json.summary, strengths: $json.strengths, improvements: $json.improvements, llm_model: $json.llm_model } }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "f9d4e5b2-9275-4993-952e-88354758543c",
-      "name": "Build Evidence Array",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1980, 180],
-      "parameters": {
-        "jsCode": "const scorecardRow = ($('Insert Scorecard').first().json || [])[0];\nconst scorecardId = scorecardRow ? scorecardRow.id : null;\nconst allEvidence = $('Parse Scorecard').first().json.all_evidence || [];\nif (!scorecardId || allEvidence.length === 0) return [{ json: { __skip_evidence: true } }];\nconst evidenceRows = allEvidence.map(e => ({ scorecard_id: scorecardId, criterion_key: e.criterion_key, quote: e.quote, timestamp_seconds: e.timestamp_seconds }));\nreturn [{ json: { evidence: evidenceRows } }];"
-      }
-    },
-    {
-      "id": "32165b6c-531f-479b-bfae-0867a3658925",
-      "name": "Has Evidence?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [2200, 180],
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "cond-evidence-01",
-              "leftValue": "={{ $json.__skip_evidence }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "notEquals" }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "d16bd709-da31-49e8-a1cb-a066d4111c95",
-      "name": "Insert Evidence",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2420, 100],
-      "parameters": {
-        "method": "POST",
-        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.evidence }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "5735b7dd-11a4-4db4-9cb2-1d4a6cdd883b",
-      "name": "Update Call Scored",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2640, 180],
-      "parameters": {
-        "method": "PATCH",
-        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
-        "sendQuery": true,
-        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $('Webhook').first().json.body.call_id }}" }] },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { status: 'scored' } }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "5319787f-eea1-49c7-97bb-09c55ad7e1e0",
-      "name": "Trigger Notify",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2860, 180],
-      "parameters": {
-        "method": "POST",
-        "url": "https://n8nserver.metaviz.pro/webhook/call-notify",
-        "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { call_id: $('Webhook').first().json.body.call_id } }}",
-        "options": {}
-      }
-    }
-  ],
-  "connections": {
-    "Webhook": { "main": [[{ "node": "Get Call", "type": "main", "index": 0 }]] },
-    "Get Call": { "main": [[{ "node": "Get Active Rubric", "type": "main", "index": 0 }]] },
-    "Get Active Rubric": { "main": [[{ "node": "Check Transcript", "type": "main", "index": 0 }]] },
-    "Check Transcript": { "main": [[{ "node": "Has Transcript?", "type": "main", "index": 0 }]] },
-    "Has Transcript?": {
-      "main": [
-        [{ "node": "Build Score Request", "type": "main", "index": 0 }],
-        [{ "node": "Mark No Transcript", "type": "main", "index": 0 }]
-      ]
-    },
-    "Build Score Request": { "main": [[{ "node": "Score with Anthropic", "type": "main", "index": 0 }]] },
-    "Score with Anthropic": { "main": [[{ "node": "Parse Scorecard", "type": "main", "index": 0 }]] },
-    "Parse Scorecard": { "main": [[{ "node": "Insert Scorecard", "type": "main", "index": 0 }]] },
-    "Insert Scorecard": { "main": [[{ "node": "Build Evidence Array", "type": "main", "index": 0 }]] },
-    "Build Evidence Array": { "main": [[{ "node": "Has Evidence?", "type": "main", "index": 0 }]] },
-    "Has Evidence?": {
-      "main": [
-        [{ "node": "Insert Evidence", "type": "main", "index": 0 }],
-        [{ "node": "Update Call Scored", "type": "main", "index": 0 }]
-      ]
-    },
-    "Insert Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
-    "Update Call Scored": { "main": [[{ "node": "Trigger Notify", "type": "main", "index": 0 }]] }
-  },
-  "pinData": {},
-  "meta": {
-    "instanceId": "b3b467644dfa8e0c6797928cc6d8bf68d9415ef612f9ba2a0d45772e9aff0f75"
-  }
+﻿{
+    "name":  "04 - LLM Scorecard",
+    "nodes":  [
+                  {
+                      "id":  "88a1826b-b929-40bb-9fe9-b8c0033fe8de",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       240,
+                                       300
+                                   ],
+                      "webhookId":  "447f710a-8536-425d-b231-a685f33a532a",
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "call-scorecard",
+                                         "responseMode":  "onReceived",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "6ac63c7f-f306-4b24-8147-e127d70210be",
+                      "name":  "Get Call",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4,
+                      "position":  [
+                                       460,
+                                       220
+                                   ],
+                      "parameters":  {
+                                         "url":  "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
+                                         "sendQuery":  true,
+                                         "queryParameters":  {
+                                                                 "parameters":  [
+                                                                                    {
+                                                                                        "name":  "id",
+                                                                                        "value":  "=eq.{{ $json.body.call_id }}"
+                                                                                    },
+                                                                                    {
+                                                                                        "name":  "select",
+                                                                                        "value":  "*"
+                                                                                    }
+                                                                                ]
+                                                             },
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "apikey",
+                                                                                         "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "a874a493-0261-452d-9838-96f47cc9a119",
+                      "name":  "Get Active Rubric",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4,
+                      "position":  [
+                                       460,
+                                       420
+                                   ],
+                      "parameters":  {
+                                         "url":  "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rubrics",
+                                         "sendQuery":  true,
+                                         "queryParameters":  {
+                                                                 "parameters":  [
+                                                                                    {
+                                                                                        "name":  "is_active",
+                                                                                        "value":  "eq.true"
+                                                                                    },
+                                                                                    {
+                                                                                        "name":  "select",
+                                                                                        "value":  "*"
+                                                                                    },
+                                                                                    {
+                                                                                        "name":  "limit",
+                                                                                        "value":  "1"
+                                                                                    }
+                                                                                ]
+                                                             },
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "apikey",
+                                                                                         "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "298e732f-3441-4fda-9eef-41bdc0c4e91e",
+                      "name":  "Check Transcript",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       680,
+                                       320
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const rawCall = $(\u0027Get Call\u0027).first().json;\nconst call = Array.isArray(rawCall) ? (rawCall[0] || {}) : (rawCall || {});\nconst callId = $(\u0027Webhook\u0027).first().json.body.call_id;\nconst transcript = (call.transcript_raw || \u0027\u0027).trim();\nconst hasTranscript = transcript.length \u003e= 50;\nreturn [{ json: { call_id: callId, has_transcript: hasTranscript } }];"
+                                     }
+                  },
+                  {
+                      "id":  "dadc987c-3f43-411b-90f0-f89e04c01e97",
+                      "name":  "Has Transcript?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2,
+                      "position":  [
+                                       900,
+                                       320
+                                   ],
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict"
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "cond-has-transcript",
+                                                                                   "leftValue":  "={{ $json.has_transcript }}",
+                                                                                   "rightValue":  true,
+                                                                                   "operator":  {
+                                                                                                    "type":  "boolean",
+                                                                                                    "operation":  "equals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "e63bd417-4c5b-40bd-8b90-eb870509bffd",
+                      "name":  "Mark No Transcript",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4,
+                      "position":  [
+                                       1100,
+                                       480
+                                   ],
+                      "parameters":  {
+                                         "method":  "PATCH",
+                                         "url":  "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
+                                         "sendQuery":  true,
+                                         "queryParameters":  {
+                                                                 "parameters":  [
+                                                                                    {
+                                                                                        "name":  "id",
+                                                                                        "value":  "=eq.{{ $json.call_id }}"
+                                                                                    }
+                                                                                ]
+                                                             },
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "apikey",
+                                                                                         "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Prefer",
+                                                                                         "value":  "return=minimal"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ { status: \u0027pending\u0027 } }}",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "38f04b6d-e29c-499d-b91a-9e660b841c40",
+                      "name":  "Build Score Request",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1100,
+                                       180
+                                   ],
+                      "parameters":  {
+                                         "mode":  "runOnceForAllItems",
+                                         "jsCode":  "const rawCall = $(\u0027Get Call\u0027).first().json;\nconst call = Array.isArray(rawCall) ? (rawCall[0] || {}) : (rawCall || {});\nconst rawRubric = $(\u0027Get Active Rubric\u0027).first().json;\nconst rubric = Array.isArray(rawRubric) ? (rawRubric[0] || {}) : (rawRubric || {});\nconst transcript = (call.transcript_raw || \u0027No transcript available.\u0027).substring(0, 6000);\nconst rubricContent = JSON.stringify(rubric.content || {}, null, 2).substring(0, 1500);\n\nconst FIELDS = [\n  \u0027overall_score: number 0-10 (weighted avg of rubric criteria; for team/internal calls score on meeting quality)\u0027,\n  \u0027summary: string â€” 2-3 sentence executive summary of the whole call\u0027,\n  \u0027meeting_phase: one of: discovery, onboarding, kick_off, ai_onboarding, strategy_review, status_update, sales_pitch, demo, training, internal_sync, one_on_one, project_review, quarterly_review, closing_call, renewal, escalation, feedback_session, content_review, other\u0027,\n  \u0027attendees: array of strings â€” each entry: Name (email if visible) â€” role/company\u0027,\n  \u0027talk_time_breakdown: array of objects {speaker, seconds (estimate), percentage} â€” percentages must sum to 100\u0027,\n  \u0027key_points: array of strings â€” main points discussed\u0027,\n  \u0027decisions: array of strings â€” decisions made during the call\u0027,\n  \u0027action_items: array of strings â€” format: [HIGH/MEDIUM/LOW] Task description â€” Owner: Name â€” Due: timeframe\u0027,\n  \u0027next_steps: array of strings\u0027,\n  \u0027open_questions: array of strings â€” questions raised but not resolved\u0027,\n  \u0027risks: array of strings â€” concerns or risks mentioned\u0027,\n  \u0027suggestions: array of strings â€” ideas or suggestions raised\u0027,\n  \u0027projects: array of strings â€” specific projects or campaigns discussed\u0027,\n  \u0027banned_phrases: array of strings â€” filler or weak phrases actually spoken (e.g. to be honest, um, basically, just)\u0027,\n  \u0027strengths: array of {criterion, score 0-10, description, evidence_quote (exact transcript phrase), timestamp_seconds or null}\u0027,\n  \u0027improvements: array of {criterion, score 0-10, description, evidence_quote (exact transcript phrase), timestamp_seconds or null}\u0027,\n  \u0027coaching_priorities: top 3 only â€” array of {priority 1-3, area, what_happened (brief quote or description), what_to_do_instead (specific actionable advice), impact (why this matters)} â€” for sales calls only, skip for team/internal\u0027,\n  \u0027meeting_effectiveness: object {score 0-10, agenda_clarity, decisions_ratio, action_coverage, focus_score 0-10, summary} â€” fill for ALL call types\u0027\n].join(\u0027\\n\u0027);\n\nconst systemPrompt = [\n  \u0027You are an expert sales coach and meeting intelligence system for WeBuildTrades, a UK marketing agency for trade businesses.\u0027,\n  \u0027\u0027,\n  \u0027Analyze the call transcript thoroughly and return ONE JSON object. No markdown fences, no explanation â€” ONLY the JSON.\u0027,\n  \u0027\u0027,\n  \u0027Sales Playbook (active rubric):\u0027,\n  rubricContent,\n  \u0027\u0027,\n  \u0027Required fields (include ALL, use empty array [] when nothing relevant for that section):\u0027,\n  FIELDS,\n  \u0027\u0027,\n  \u0027Rules:\u0027,\n  \u0027- evidence_quote must be EXACT phrases from the transcript\u0027,\n  \u0027- coaching_priorities: include only for client-facing sales calls (discovery, ads_intro, launch, follow_up)\u0027,\n  \u0027- meeting_effectiveness: always include for every call type\u0027,\n  \u0027- Return [] for list sections with nothing relevant â€” never omit a field\u0027\n].join(\u0027\\n\u0027);\n\nreturn [{ json: { systemPrompt, userMessage: \u0027Analyze this call transcript:\\n\\n\u0027 + transcript } }];"
+                                     }
+                  },
+                  {
+                      "id":  "fe62fc17-c285-4032-aab8-a36498bd49a8",
+                      "name":  "Score with Anthropic",
+                      "type":  "@n8n/n8n-nodes-langchain.anthropic",
+                      "typeVersion":  1,
+                      "position":  [
+                                       1320,
+                                       180
+                                   ],
+                      "credentials":  {
+                                          "anthropicApi":  {
+                                                               "id":  "I2r0zHnMY4qLOwGn",
+                                                               "name":  "Anthropic account 3"
+                                                           }
+                                      },
+                      "parameters":  {
+                                         "modelId":  {
+                                                         "__rl":  true,
+                                                         "value":  "claude-sonnet-4-6",
+                                                         "mode":  "id"
+                                                     },
+                                         "messages":  {
+                                                          "values":  [
+                                                                         {
+                                                                             "role":  "user",
+                                                                             "content":  "={{ $json.userMessage }}"
+                                                                         }
+                                                                     ]
+                                                      },
+                                         "options":  {
+                                                         "systemMessage":  "={{ $json.systemPrompt }}",
+                                                         "maxTokensToSample":  4000
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "11c0bafb-9812-4606-a0e4-b946593e7966",
+                      "name":  "Parse Scorecard",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1540,
+                                       180
+                                   ],
+                      "parameters":  {
+                                         "mode":  "runOnceForAllItems",
+                                         "jsCode":  "const responseText = ($input.first().json.text || $input.first().json.content?.[0]?.text || \u0027\u0027).trim();\nconst callId = $(\u0027Webhook\u0027).first().json.body.call_id;\nconst rawRubricPS = $(\u0027Get Active Rubric\u0027).first().json;\nconst rubric = Array.isArray(rawRubricPS) ? (rawRubricPS[0] || null) : (rawRubricPS || null);\n\nlet cleanText = responseText.replace(/^```(?:json)?\\s*/i, \u0027\u0027).replace(/\\s*```\\s*$/i, \u0027\u0027).trim();\n\n// Fallback: if model returned markdown prose, extract the embedded JSON object\nif (!cleanText.startsWith(\u0027{\u0027)) {\n  const start = cleanText.indexOf(\u0027{\u0027);\n  const end = cleanText.lastIndexOf(\u0027}\u0027);\n  if (start !== -1 \u0026\u0026 end \u003e start) cleanText = cleanText.substring(start, end + 1);\n}\n\nlet sc;\ntry {\n  sc = JSON.parse(cleanText);\n} catch (e) {\n  throw new Error(\u0027Failed to parse LLM scorecard: \u0027 + responseText.substring(0, 300));\n}\n\nif (typeof sc.overall_score !== \u0027number\u0027) sc.overall_score = 0;\nif (!Array.isArray(sc.strengths)) sc.strengths = [];\nif (!Array.isArray(sc.improvements)) sc.improvements = [];\nif (!sc.summary) sc.summary = \u0027\u0027;\n\nconst allEvidence = [];\n\nfor (const s of sc.strengths) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\nfor (const s of sc.improvements) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\n\nif (sc.meeting_phase) allEvidence.push({ criterion_key: \u0027meeting_phase\u0027, quote: String(sc.meeting_phase).trim(), timestamp_seconds: null });\n\nfor (const a of (sc.attendees || [])) allEvidence.push({ criterion_key: \u0027attendee\u0027, quote: String(a), timestamp_seconds: null });\n\nif (sc.talk_time_breakdown \u0026\u0026 sc.talk_time_breakdown.length \u003e 0) {\n  allEvidence.push({ criterion_key: \u0027talk_time_breakdown\u0027, quote: JSON.stringify(sc.talk_time_breakdown), timestamp_seconds: null });\n}\n\nconst LISTS = [\n  [\u0027key_points\u0027,\u0027key_point\u0027],[\u0027decisions\u0027,\u0027decision\u0027],[\u0027action_items\u0027,\u0027action_item\u0027],\n  [\u0027next_steps\u0027,\u0027next_step\u0027],[\u0027open_questions\u0027,\u0027open_question\u0027],[\u0027risks\u0027,\u0027risk\u0027],\n  [\u0027suggestions\u0027,\u0027suggestion\u0027],[\u0027projects\u0027,\u0027project\u0027],[\u0027banned_phrases\u0027,\u0027banned_phrase\u0027]\n];\nfor (const [field, key] of LISTS) {\n  for (const item of (sc[field] || [])) allEvidence.push({ criterion_key: key, quote: String(item), timestamp_seconds: null });\n}\n\nfor (const p of (sc.coaching_priorities || [])) {\n  if (p.priority \u003e= 1 \u0026\u0026 p.priority \u003c= 3) allEvidence.push({ criterion_key: \u0027coaching_priority_\u0027 + p.priority, quote: JSON.stringify(p), timestamp_seconds: null });\n}\n\nif (sc.meeting_effectiveness) allEvidence.push({ criterion_key: \u0027meeting_effectiveness\u0027, quote: JSON.stringify(sc.meeting_effectiveness), timestamp_seconds: null });\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric ? rubric.id : null,\n  overall_score: Math.round(sc.overall_score * 10) / 10,\n  summary: sc.summary,\n  strengths: sc.strengths,\n  improvements: sc.improvements,\n  llm_model: \u0027claude-sonnet-4-6\u0027,\n  all_evidence: allEvidence\n} }];"
+                                     }
+                  },
+                  {
+                      "id":  "6fdfab3b-a506-436f-a183-48811d372fa0",
+                      "name":  "Insert Scorecard",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4,
+                      "position":  [
+                                       1760,
+                                       180
+                                   ],
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "apikey",
+                                                                                         "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Prefer",
+                                                                                         "value":  "return=representation"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ { call_id: $json.call_id, rubric_id: $json.rubric_id, overall_score: $json.overall_score, summary: $json.summary, strengths: $json.strengths, improvements: $json.improvements, llm_model: $json.llm_model } }}",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "f9d4e5b2-9275-4993-952e-88354758543c",
+                      "name":  "Build Evidence Array",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1980,
+                                       180
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const scorecardRow = ($(\u0027Insert Scorecard\u0027).first().json || [])[0];\nconst scorecardId = scorecardRow ? scorecardRow.id : null;\nconst allEvidence = $(\u0027Parse Scorecard\u0027).first().json.all_evidence || [];\nif (!scorecardId || allEvidence.length === 0) return [{ json: { __skip_evidence: true } }];\nconst evidenceRows = allEvidence.map(e =\u003e ({ scorecard_id: scorecardId, criterion_key: e.criterion_key, quote: e.quote, timestamp_seconds: e.timestamp_seconds }));\nreturn [{ json: { evidence: evidenceRows } }];"
+                                     }
+                  },
+                  {
+                      "id":  "32165b6c-531f-479b-bfae-0867a3658925",
+                      "name":  "Has Evidence?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2200,
+                                       180
+                                   ],
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict"
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "cond-evidence-01",
+                                                                                   "leftValue":  "={{ $json.__skip_evidence }}",
+                                                                                   "rightValue":  true,
+                                                                                   "operator":  {
+                                                                                                    "type":  "boolean",
+                                                                                                    "operation":  "notEquals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "d16bd709-da31-49e8-a1cb-a066d4111c95",
+                      "name":  "Insert Evidence",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4,
+                      "position":  [
+                                       2420,
+                                       100
+                                   ],
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "apikey",
+                                                                                         "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Prefer",
+                                                                                         "value":  "return=minimal"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ $json.evidence }}",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "5735b7dd-11a4-4db4-9cb2-1d4a6cdd883b",
+                      "name":  "Update Call Scored",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4,
+                      "position":  [
+                                       2640,
+                                       180
+                                   ],
+                      "parameters":  {
+                                         "method":  "PATCH",
+                                         "url":  "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
+                                         "sendQuery":  true,
+                                         "queryParameters":  {
+                                                                 "parameters":  [
+                                                                                    {
+                                                                                        "name":  "id",
+                                                                                        "value":  "=eq.{{ $(\u0027Webhook\u0027).first().json.body.call_id }}"
+                                                                                    }
+                                                                                ]
+                                                             },
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "apikey",
+                                                                                         "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Prefer",
+                                                                                         "value":  "return=minimal"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ { status: \u0027scored\u0027 } }}",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  },
+                  {
+                      "id":  "5319787f-eea1-49c7-97bb-09c55ad7e1e0",
+                      "name":  "Trigger Notify",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4,
+                      "position":  [
+                                       2860,
+                                       180
+                                   ],
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://n8nserver.metaviz.pro/webhook/call-notify",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ { call_id: $(\u0027Webhook\u0027).first().json.body.call_id } }}",
+                                         "options":  {
+
+                                                     }
+                                     }
+                  }
+              ],
+    "connections":  {
+                        "Webhook":  {
+                                        "main":  [
+                                                     [
+                                                         {
+                                                             "node":  "Get Call",
+                                                             "type":  "main",
+                                                             "index":  0
+                                                         }
+                                                     ]
+                                                 ]
+                                    },
+                        "Get Call":  {
+                                         "main":  [
+                                                      [
+                                                          {
+                                                              "node":  "Get Active Rubric",
+                                                              "type":  "main",
+                                                              "index":  0
+                                                          }
+                                                      ]
+                                                  ]
+                                     },
+                        "Get Active Rubric":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Check Transcript",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              },
+                        "Check Transcript":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Has Transcript?",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Has Transcript?":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Build Score Request",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ],
+                                                             [
+                                                                 {
+                                                                     "node":  "Mark No Transcript",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Build Score Request":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Score with Anthropic",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Score with Anthropic":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Parse Scorecard",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Parse Scorecard":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Insert Scorecard",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Insert Scorecard":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Build Evidence Array",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Build Evidence Array":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Has Evidence?",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Has Evidence?":  {
+                                              "main":  [
+                                                           [
+                                                               {
+                                                                   "node":  "Insert Evidence",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ],
+                                                           [
+                                                               {
+                                                                   "node":  "Update Call Scored",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                                       ]
+                                          },
+                        "Insert Evidence":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Update Call Scored",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Update Call Scored":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Trigger Notify",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               }
+                    },
+    "pinData":  {
+
+                },
+    "meta":  {
+                 "instanceId":  "b3b467644dfa8e0c6797928cc6d8bf68d9415ef612f9ba2a0d45772e9aff0f75"
+             }
 }

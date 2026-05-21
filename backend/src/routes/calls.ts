@@ -15,7 +15,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
   const userId     = req.user!.id
   const userDeptId = req.user!.department_id
 
-  // Pre-fetch allowed call IDs for non-admin roles
+  // Pre-fetch allowed call IDs for reps; managers use department_id directly
   let allowedCallIds: string[] | null = null
 
   if (userRole === 'rep') {
@@ -24,19 +24,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
       .select('call_id')
       .eq('team_member_id', userId)
     allowedCallIds = parts?.map((p: any) => p.call_id) ?? []
-  } else if (userRole === 'manager') {
-    const { data: members } = await supabase
-      .from('team_members')
-      .select('id')
-      .eq('department_id', userDeptId)
-    const memberIds = members?.map((m: any) => m.id) ?? [userId]
-    const { data: parts } = await supabase
-      .from('call_participants')
-      .select('call_id')
-      .in('team_member_id', memberIds)
-    allowedCallIds = [...new Set(parts?.map((p: any) => p.call_id) ?? [])]
   }
-  // admin → allowedCallIds stays null (no filter)
+  // admin → no filter; manager → department_id filter applied below
 
   if (allowedCallIds !== null && allowedCallIds.length === 0) {
     return res.json([])
@@ -55,6 +44,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     .limit(Math.min(parseInt(limit) || 200, 500))
 
   if (allowedCallIds !== null) q = q.in('id', allowedCallIds)
+  // Manager sees calls in their own department only
+  if (userRole === 'manager' && userDeptId) q = q.eq('department_id', userDeptId)
   if (type)   q = q.eq('call_type', type)
   if (status) q = q.eq('status', status)
   if (dept)   q = q.eq('department_id', dept)
@@ -73,23 +64,23 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
 
   // Access check for non-admin roles
   if (userRole !== 'admin') {
-    const { data: participants } = await supabase
-      .from('call_participants')
-      .select('team_member_id, calls!inner(department_id)')
-      .eq('call_id', id)
-
-    const isParticipant = participants?.some((p: any) => p.team_member_id === userId)
-
-    if (userRole === 'rep' && !isParticipant) {
-      return res.status(403).json({ error: 'Access denied' })
+    if (userRole === 'rep') {
+      const { data: participants } = await supabase
+        .from('call_participants')
+        .select('team_member_id')
+        .eq('call_id', id)
+      const isParticipant = participants?.some((p: any) => p.team_member_id === userId)
+      if (!isParticipant) return res.status(403).json({ error: 'Access denied' })
     }
 
     if (userRole === 'manager') {
-      const inDept = participants?.some((p: any) => {
-        const call = p.calls as any
-        return call?.department_id === userDeptId
-      })
-      if (!inDept && !isParticipant) {
+      // Manager can view any call in their department
+      const { data: callRow } = await supabase
+        .from('calls')
+        .select('department_id')
+        .eq('id', id)
+        .single()
+      if (callRow?.department_id !== userDeptId) {
         return res.status(403).json({ error: 'Access denied' })
       }
     }

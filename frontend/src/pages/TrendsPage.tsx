@@ -126,7 +126,7 @@ export default function TrendsPage() {
       <div className="flex gap-2 flex-wrap mb-6">
         {members.length === 0 ? (
           <div className="card px-4 py-3 text-gray-500 text-sm">
-            No team members loaded. Run <code className="text-amber-400">supabase/seed.sql</code> and <code className="text-amber-400">0003_demo_public_read.sql</code> in Supabase.
+            No team members found. Make sure the backend is running.
           </div>
         ) : members.map(m => (
           <button
