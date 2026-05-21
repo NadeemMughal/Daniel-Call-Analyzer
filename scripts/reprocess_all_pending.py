@@ -18,7 +18,7 @@ for line in env_path.read_text(encoding='utf-8').splitlines():
 SUPABASE_URL     = env['SUPABASE_URL']
 SUPABASE_KEY     = env['SUPABASE_SERVICE_ROLE_KEY']
 N8N_BASE_URL     = env.get('N8N_BASE_URL', 'https://n8nserver.metaviz.pro')
-CLASSIFY_WEBHOOK = f"{N8N_BASE_URL}/webhook/classify-call"
+CLASSIFY_WEBHOOK = f"{N8N_BASE_URL}/webhook/call-classify"
 BATCH_PRINT      = 50
 DELAY            = 0.2   # seconds between calls — polite rate
 
