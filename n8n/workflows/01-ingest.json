@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "01 - Ingest Fathom Call",
   "nodes": [
     {
@@ -104,7 +104,7 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1340, 300],
+      "position": [1340, 380],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"received\": true }",
@@ -132,6 +132,66 @@
           "mode": "raw",
           "rawBody": "={ \"call_id\": \"{{ $('Insert Call').first().json[0].id }}\" }"
         },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000008",
+      "name": "Fetch Team Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 250],
+      "parameters": {
+        "method": "GET",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/team_members",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "id,email,name,role,department_id" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000009",
+      "name": "Build Participants",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 250],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const callRow = ($('Insert Call').first().json || [])[0];\nconst callId = callRow ? callRow.id : null;\nif (!callId) return [];\n\nconst attendees = $('Verify HMAC').first().json.body.attendees || [];\nif (attendees.length === 0) return [];\n\nconst members = $input.all()[0]?.json || [];\nconst emailMap = {};\nfor (const m of members) {\n  if (m.email) emailMap[m.email.toLowerCase().trim()] = m;\n}\n\nconst participants = attendees.map((a, i) => {\n  const email = (a.email || '').toLowerCase().trim();\n  const member = emailMap[email];\n  const isInternal = !!member;\n  return {\n    call_id: callId,\n    name: a.name || a.email || 'Unknown',\n    email: a.email || '',\n    role: (i === 0 || isInternal) ? 'host' : 'guest',\n    is_external: !isInternal,\n    team_member_id: member ? member.id : null\n  };\n});\n\nif (participants.length === 0) return [];\nreturn [{ json: { participants } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000010",
+      "name": "Insert Participants",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 250],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/call_participants",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5YnZud2lkcG54bm91YXVrcm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA2NjM2NSwiZXhwIjoyMDkzNjQyMzY1fQ.sCP7tiT6_Pc_nME6HqmfH5PUZjaNzrfl45R8JK6Ay4c" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.participants }}",
         "options": {}
       }
     }
@@ -162,8 +222,19 @@
       "main": [
         [
           { "node": "Respond 200", "type": "main", "index": 0 },
-          { "node": "Trigger Classify", "type": "main", "index": 0 }
+          { "node": "Trigger Classify", "type": "main", "index": 0 },
+          { "node": "Fetch Team Members", "type": "main", "index": 0 }
         ]
+      ]
+    },
+    "Fetch Team Members": {
+      "main": [
+        [{ "node": "Build Participants", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Participants": {
+      "main": [
+        [{ "node": "Insert Participants", "type": "main", "index": 0 }]
       ]
     }
   },
