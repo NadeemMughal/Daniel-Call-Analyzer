@@ -118,19 +118,15 @@ def parse_score(text: str) -> dict:
         end = clean.rfind('}')
         if start != -1 and end > start:
             clean = clean[start:end + 1]
-    def _repair(s: str) -> str:
-        s = re.sub(r',\s*([}\]])', r'\1', s)          # remove trailing commas
-        s = re.sub(r'([}\]"0-9])\s*\n(\s*[{\["])',    # add missing commas between elements
-                   lambda m: m.group(1) + ',\n' + m.group(2), s)
-        return s
-
-    clean = _repair(clean)
+    # Fix trailing commas before } or ] (common LLM JSON error)
+    clean = re.sub(r',\s*([}\]])', r'\1', clean)
     try:
         return json.loads(clean)
     except json.JSONDecodeError:
-        # Second attempt: also strip unescaped control characters
+        # Second attempt: strip unescaped control chars
         clean2 = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', clean)
-        return json.loads(_repair(clean2))
+        clean2 = re.sub(r',\s*([}\]])', r'\1', clean2)
+        return json.loads(clean2)
 
 def build_evidence(sc: dict) -> list:
     ev = []
