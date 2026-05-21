@@ -56,13 +56,20 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [-288, 1040],
+      "credentials": {
+        "anthropicApi": {
+          "id": "I2r0zHnMY4qLOwGn",
+          "name": "Anthropic account 3"
+        }
+      },
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
             { "name": "anthropic-version", "value": "2023-06-01" },
             { "name": "Content-Type", "value": "application/json" }
           ]
