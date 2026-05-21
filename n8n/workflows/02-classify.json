@@ -42,19 +42,19 @@
     },
     {
       "id": "b9f2d8a1-4c3e-4a5f-8e7b-1d2c3f4e5a6b",
-      "name": "Build Groq Request",
+      "name": "Build Classify Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [-512, 1040],
       "parameters": {
-        "jsCode": "const call = ($input.all()[0]?.json || [])[0] || {};\nconst transcript = (call.transcript_raw || '').substring(0, 2000);\n\nreturn [{\n  json: {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 300,\n    system: 'You are a call classifier for a sales coaching system.\\nReturn ONLY valid JSON, no other text.\\n\\ncall_type must be one of: discovery, ads_intro, launch, follow_up, team, other\\n\\nResponse schema: {\"call_type\": \"discovery\", \"confidence\": 0.95, \"reasoning\": \"brief explanation\"}',\n    messages: [\n      {\n        role: 'user',\n        content: 'Classify this sales call transcript:\\n\\n' + (transcript || 'No transcript available')\n      }\n    ]\n  }\n}];"
+        "jsCode": "const call = ($input.all()[0]?.json || [])[0] || {};\nconst transcript = (call.transcript_raw || '').substring(0, 2000);\n\nconst systemMessage = 'You are a call classifier for a sales coaching system.\\nReturn ONLY valid JSON, no other text.\\n\\ncall_type must be one of: discovery, ads_intro, launch, follow_up, team, other\\n\\nResponse schema: {\"call_type\": \"discovery\", \"confidence\": 0.95, \"reasoning\": \"brief explanation\"}';\n\nconst userMessage = 'Classify this sales call transcript:\\n\\n' + (transcript || 'No transcript available');\n\nreturn [{ json: { systemMessage, userMessage } }];"
       }
     },
     {
       "id": "28787ce8-1ee3-4e8a-880e-79e395748a87",
-      "name": "Classify with Groq",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
+      "name": "Classify with Anthropic",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
       "position": [-288, 1040],
       "credentials": {
         "anthropicApi": {
@@ -63,22 +63,23 @@
         }
       },
       "parameters": {
-        "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "anthropicApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+        "modelId": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ $json.userMessage }}"
+            }
           ]
         },
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ $json }}",
-        "options": {}
+        "options": {
+          "systemMessage": "={{ $json.systemMessage }}",
+          "maxTokensToSample": 300
+        }
       }
     },
     {
@@ -88,7 +89,7 @@
       "typeVersion": 2,
       "position": [-64, 1040],
       "parameters": {
-        "jsCode": "const responseText = $input.first().json.content?.[0]?.text || '';\nconst callId = $('Webhook').first().json.body.call_id;\nconst validTypes = ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'];\n\nlet cleanText = responseText.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\nlet classification;\ntry {\n  classification = JSON.parse(cleanText);\n} catch (e) {\n  classification = { call_type: 'other', confidence: 0, reasoning: 'parse error: ' + responseText.substring(0, 100) };\n}\n\nif (!validTypes.includes(classification.call_type)) {\n  classification.call_type = 'other';\n}\n\nreturn [{ json: { ...classification, call_id: callId } }];"
+        "jsCode": "const responseText = ($input.first().json.text || $input.first().json.content?.[0]?.text || '').trim();\nconst callId = $('Webhook').first().json.body.call_id;\nconst validTypes = ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'];\n\nlet cleanText = responseText.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\nlet classification;\ntry {\n  classification = JSON.parse(cleanText);\n} catch (e) {\n  classification = { call_type: 'other', confidence: 0, reasoning: 'parse error: ' + responseText.substring(0, 100) };\n}\n\nif (!validTypes.includes(classification.call_type)) {\n  classification.call_type = 'other';\n}\n\nreturn [{ json: { ...classification, call_id: callId } }];"
       }
     },
     {
@@ -223,9 +224,9 @@
   ],
   "connections": {
     "Webhook": { "main": [[{ "node": "Get Call", "type": "main", "index": 0 }]] },
-    "Get Call": { "main": [[{ "node": "Build Groq Request", "type": "main", "index": 0 }]] },
-    "Build Groq Request": { "main": [[{ "node": "Classify with Groq", "type": "main", "index": 0 }]] },
-    "Classify with Groq": { "main": [[{ "node": "Parse Classification", "type": "main", "index": 0 }]] },
+    "Get Call": { "main": [[{ "node": "Build Classify Request", "type": "main", "index": 0 }]] },
+    "Build Classify Request": { "main": [[{ "node": "Classify with Anthropic", "type": "main", "index": 0 }]] },
+    "Classify with Anthropic": { "main": [[{ "node": "Parse Classification", "type": "main", "index": 0 }]] },
     "Parse Classification": { "main": [[{ "node": "Match Client", "type": "main", "index": 0 }]] },
     "Match Client": { "main": [[{ "node": "Update Call", "type": "main", "index": 0 }]] },
     "Update Call": { "main": [[{ "node": "Is Team Call?", "type": "main", "index": 0 }]] },

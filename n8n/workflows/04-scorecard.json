@@ -2,11 +2,12 @@
   "name": "04 - LLM Scorecard",
   "nodes": [
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000001",
+      "id": "88a1826b-b929-40bb-9fe9-b8c0033fe8de",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [240, 300],
+      "webhookId": "447f710a-8536-425d-b231-a685f33a532a",
       "parameters": {
         "httpMethod": "POST",
         "path": "call-scorecard",
@@ -15,13 +16,12 @@
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000002",
+      "id": "6ac63c7f-f306-4b24-8147-e127d70210be",
       "name": "Get Call",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 200],
+      "position": [460, 220],
       "parameters": {
-        "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
@@ -41,13 +41,12 @@
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000003",
+      "id": "a874a493-0261-452d-9838-96f47cc9a119",
       "name": "Get Active Rubric",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 400],
+      "position": [460, 420],
       "parameters": {
-        "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rubrics",
         "sendQuery": true,
         "queryParameters": {
@@ -68,36 +67,43 @@
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-check-transcript",
+      "id": "298e732f-3441-4fda-9eef-41bdc0c4e91e",
       "name": "Check Transcript",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [680, 320],
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const rawCall = $('Get Call').first().json;\nconst call = Array.isArray(rawCall) ? (rawCall[0] || {}) : (rawCall || {});\nconst callId = $('Webhook').first().json.body.call_id;\nconst transcript = (call.transcript_raw || '').trim();\nconst hasTranscript = transcript.length >= 50;\nreturn [{ json: { call_id: callId, has_transcript: hasTranscript } }];"
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-has-transcript",
+      "id": "dadc987c-3f43-411b-90f0-f89e04c01e97",
       "name": "Has Transcript?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [880, 300],
+      "position": [900, 320],
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-has-transcript", "leftValue": "={{ $json.has_transcript }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "conditions": [
+            {
+              "id": "cond-has-transcript",
+              "leftValue": "={{ $json.has_transcript }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-mark-no-transcript",
+      "id": "e63bd417-4c5b-40bd-8b90-eb870509bffd",
       "name": "Mark No Transcript",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1080, 480],
+      "position": [1100, 480],
       "parameters": {
         "method": "PATCH",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
@@ -113,29 +119,28 @@
           ]
         },
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ { status: 'pending' } }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-build-score-01",
+      "id": "38f04b6d-e29c-499d-b91a-9e660b841c40",
       "name": "Build Score Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1080, 180],
+      "position": [1100, 180],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const rawCall = $('Get Call').first().json;\nconst call = Array.isArray(rawCall) ? (rawCall[0] || {}) : (rawCall || {});\nconst rawRubric = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubric) ? (rawRubric[0] || {}) : (rawRubric || {});\nconst transcript = (call.transcript_raw || 'No transcript available.').substring(0, 6000);\nconst rubricContent = JSON.stringify(rubric.content || {}, null, 2).substring(0, 1500);\n\nconst systemPrompt = [\n  'You are an expert sales coach reviewing a recorded sales call for WeBuildTrades, a UK marketing agency for trade businesses.',\n  '',\n  'Evaluate the rep performance against the sales playbook below and return a structured coaching scorecard.',\n  '',\n  'Sales Playbook (active rubric):',\n  rubricContent,\n  '',\n  'Scoring instructions:',\n  '- Score each criterion from 0 to 10 (0 = very poor, 10 = excellent)',\n  '- overall_score = weighted average across all scoring_criteria using their weight values',\n  '- For each strength and improvement, include an exact quoted phrase from the transcript as evidence',\n  '- Be specific and actionable — tell the rep exactly what to do differently',\n  '- If this is a team call (internal meeting), score leniently on sales criteria and note it',\n  '',\n  'Return ONLY valid JSON, no markdown, no explanation outside the JSON. Schema:',\n  '{\"overall_score\": 7.5, \"summary\": \"2-3 sentence coaching summary\", \"strengths\": [{\"criterion\": \"key\", \"score\": 8, \"description\": \"what rep did well\", \"evidence_quote\": \"exact quote\", \"timestamp_seconds\": 120}], \"improvements\": [{\"criterion\": \"key\", \"score\": 4, \"description\": \"what to improve and how\", \"evidence_quote\": \"quote showing issue\", \"timestamp_seconds\": 45}]}'\n].join('\\n');\n\nreturn [{\n  json: {\n    model: 'claude-sonnet-4-6',\n    max_tokens: 1500,\n    system: systemPrompt,\n    messages: [\n      { role: 'user', content: 'Please evaluate this sales call transcript:\\n\\n' + transcript }\n    ]\n  }\n}];"
+        "jsCode": "const rawCall = $('Get Call').first().json;\nconst call = Array.isArray(rawCall) ? (rawCall[0] || {}) : (rawCall || {});\nconst rawRubric = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubric) ? (rawRubric[0] || {}) : (rawRubric || {});\nconst transcript = (call.transcript_raw || 'No transcript available.').substring(0, 6000);\nconst rubricContent = JSON.stringify(rubric.content || {}, null, 2).substring(0, 1500);\n\nconst systemPrompt = [\n  'You are an expert sales coach reviewing a recorded sales call for WeBuildTrades, a UK marketing agency for trade businesses.',\n  '',\n  'Evaluate the rep performance against the sales playbook below and return a structured coaching scorecard.',\n  '',\n  'Sales Playbook (active rubric):',\n  rubricContent,\n  '',\n  'Scoring instructions:',\n  '- Score each criterion from 0 to 10 (0 = very poor, 10 = excellent)',\n  '- overall_score = weighted average across all scoring_criteria using their weight values',\n  '- For each strength and improvement, include an exact quoted phrase from the transcript as evidence',\n  '- Be specific and actionable — tell the rep exactly what to do differently',\n  '- If this is a team call (internal meeting), score leniently on sales criteria and note it',\n  '',\n  'Return ONLY valid JSON, no markdown, no explanation outside the JSON. Schema:',\n  '{\"overall_score\": 7.5, \"summary\": \"2-3 sentence coaching summary\", \"strengths\": [{\"criterion\": \"key\", \"score\": 8, \"description\": \"what rep did well\", \"evidence_quote\": \"exact quote\", \"timestamp_seconds\": 120}], \"improvements\": [{\"criterion\": \"key\", \"score\": 4, \"description\": \"what to improve and how\", \"evidence_quote\": \"quote showing issue\", \"timestamp_seconds\": 45}]}'\n].join('\\n');\n\nreturn [{\n  json: {\n    systemPrompt,\n    userMessage: 'Please evaluate this sales call transcript:\\n\\n' + transcript\n  }\n}];"
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000004",
-      "name": "Score with Groq",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1300, 180],
+      "id": "fe62fc17-c285-4032-aab8-a36498bd49a8",
+      "name": "Score with Anthropic",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [1320, 180],
       "credentials": {
         "anthropicApi": {
           "id": "I2r0zHnMY4qLOwGn",
@@ -143,41 +148,42 @@
         }
       },
       "parameters": {
-        "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "anthropicApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "Content-Type", "value": "application/json" }
+        "modelId": {
+          "__rl": true,
+          "value": "claude-sonnet-4-6",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ $json.userMessage }}"
+            }
           ]
         },
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ $json }}",
-        "options": {}
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}",
+          "maxTokensToSample": 1500
+        }
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000005",
+      "id": "11c0bafb-9812-4606-a0e4-b946593e7966",
       "name": "Parse Scorecard",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1520, 180],
+      "position": [1540, 180],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const responseText = $input.first().json.content?.[0]?.text || '';\nconst callId = $('Webhook').first().json.body.call_id;\nconst rawRubricPS = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubricPS) ? (rawRubricPS[0] || null) : (rawRubricPS || null);\n\n// Strip markdown code fences the LLM sometimes wraps around JSON\nlet cleanText = responseText.trim();\ncleanText = cleanText.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\nlet scorecard;\ntry {\n  scorecard = JSON.parse(cleanText);\n} catch (e) {\n  throw new Error('Failed to parse LLM scorecard: ' + responseText.substring(0, 300));\n}\n\nif (typeof scorecard.overall_score !== 'number') scorecard.overall_score = 0;\nif (!Array.isArray(scorecard.strengths)) scorecard.strengths = [];\nif (!Array.isArray(scorecard.improvements)) scorecard.improvements = [];\nif (!scorecard.summary) scorecard.summary = '';\n\nconst allEvidence = [\n  ...scorecard.strengths.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null })),\n  ...scorecard.improvements.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null }))\n];\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric ? rubric.id : null,\n  overall_score: Math.round(scorecard.overall_score * 10) / 10,\n  summary: scorecard.summary,\n  strengths: scorecard.strengths,\n  improvements: scorecard.improvements,\n  llm_model: 'claude-sonnet-4-6',\n  all_evidence: allEvidence\n} }];"
+        "jsCode": "const responseText = ($input.first().json.text || $input.first().json.content?.[0]?.text || '').trim();\nconst callId = $('Webhook').first().json.body.call_id;\nconst rawRubricPS = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubricPS) ? (rawRubricPS[0] || null) : (rawRubricPS || null);\n\nlet cleanText = responseText.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\nlet scorecard;\ntry {\n  scorecard = JSON.parse(cleanText);\n} catch (e) {\n  throw new Error('Failed to parse LLM scorecard: ' + responseText.substring(0, 300));\n}\n\nif (typeof scorecard.overall_score !== 'number') scorecard.overall_score = 0;\nif (!Array.isArray(scorecard.strengths)) scorecard.strengths = [];\nif (!Array.isArray(scorecard.improvements)) scorecard.improvements = [];\nif (!scorecard.summary) scorecard.summary = '';\n\nconst allEvidence = [\n  ...scorecard.strengths.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null })),\n  ...scorecard.improvements.filter(s => s.evidence_quote).map(s => ({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null }))\n];\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric ? rubric.id : null,\n  overall_score: Math.round(scorecard.overall_score * 10) / 10,\n  summary: scorecard.summary,\n  strengths: scorecard.strengths,\n  improvements: scorecard.improvements,\n  llm_model: 'claude-sonnet-4-6',\n  all_evidence: allEvidence\n} }];"
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000006",
+      "id": "6fdfab3b-a506-436f-a183-48811d372fa0",
       "name": "Insert Scorecard",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1740, 180],
+      "position": [1760, 180],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
@@ -191,43 +197,49 @@
           ]
         },
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ { call_id: $json.call_id, rubric_id: $json.rubric_id, overall_score: $json.overall_score, summary: $json.summary, strengths: $json.strengths, improvements: $json.improvements, llm_model: $json.llm_model } }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000007",
+      "id": "f9d4e5b2-9275-4993-952e-88354758543c",
       "name": "Build Evidence Array",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1960, 180],
+      "position": [1980, 180],
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "const scorecardRow = ($('Insert Scorecard').first().json || [])[0];\nconst scorecardId = scorecardRow ? scorecardRow.id : null;\nconst allEvidence = $('Parse Scorecard').first().json.all_evidence || [];\nif (!scorecardId || allEvidence.length === 0) return [{ json: { __skip_evidence: true } }];\nconst evidenceRows = allEvidence.map(e => ({ scorecard_id: scorecardId, criterion_key: e.criterion_key, quote: e.quote, timestamp_seconds: e.timestamp_seconds }));\nreturn [{ json: { evidence: evidenceRows } }];"
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000008",
+      "id": "32165b6c-531f-479b-bfae-0867a3658925",
       "name": "Has Evidence?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2160, 180],
+      "position": [2200, 180],
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-evidence-01", "leftValue": "={{ $json.__skip_evidence }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "conditions": [
+            {
+              "id": "cond-evidence-01",
+              "leftValue": "={{ $json.__skip_evidence }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEquals" }
+            }
+          ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000009",
+      "id": "d16bd709-da31-49e8-a1cb-a066d4111c95",
       "name": "Insert Evidence",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2360, 100],
+      "position": [2420, 100],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
@@ -241,18 +253,17 @@
           ]
         },
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ $json.evidence }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000010",
+      "id": "5735b7dd-11a4-4db4-9cb2-1d4a6cdd883b",
       "name": "Update Call Scored",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2560, 180],
+      "position": [2640, 180],
       "parameters": {
         "method": "PATCH",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
@@ -268,29 +279,23 @@
           ]
         },
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ { status: 'scored' } }}",
         "options": {}
       }
     },
     {
-      "id": "a1b2c3d4-0004-0004-0004-000000000011",
+      "id": "5319787f-eea1-49c7-97bb-09c55ad7e1e0",
       "name": "Trigger Notify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2760, 180],
+      "position": [2860, 180],
       "parameters": {
         "method": "POST",
         "url": "https://n8nserver.metaviz.pro/webhook/call-notify",
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
         "sendBody": true,
-        "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ { call_id: $('Webhook').first().json.body.call_id } }}",
         "options": {}
@@ -308,8 +313,8 @@
         [{ "node": "Mark No Transcript", "type": "main", "index": 0 }]
       ]
     },
-    "Build Score Request": { "main": [[{ "node": "Score with Groq", "type": "main", "index": 0 }]] },
-    "Score with Groq": { "main": [[{ "node": "Parse Scorecard", "type": "main", "index": 0 }]] },
+    "Build Score Request": { "main": [[{ "node": "Score with Anthropic", "type": "main", "index": 0 }]] },
+    "Score with Anthropic": { "main": [[{ "node": "Parse Scorecard", "type": "main", "index": 0 }]] },
     "Parse Scorecard": { "main": [[{ "node": "Insert Scorecard", "type": "main", "index": 0 }]] },
     "Insert Scorecard": { "main": [[{ "node": "Build Evidence Array", "type": "main", "index": 0 }]] },
     "Build Evidence Array": { "main": [[{ "node": "Has Evidence?", "type": "main", "index": 0 }]] },
@@ -322,7 +327,8 @@
     "Insert Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
     "Update Call Scored": { "main": [[{ "node": "Trigger Notify", "type": "main", "index": 0 }]] }
   },
-  "active": false,
-  "settings": { "executionOrder": "v1" },
-  "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567804"
+  "pinData": {},
+  "meta": {
+    "instanceId": "b3b467644dfa8e0c6797928cc6d8bf68d9415ef612f9ba2a0d45772e9aff0f75"
+  }
 }
