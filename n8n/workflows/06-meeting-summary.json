@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "06 - Meeting Summary Agent",
   "nodes": [
     {
@@ -6,7 +6,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "call-meeting-summary",
@@ -19,22 +22,37 @@
       "name": "Get Call",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [
+        460,
+        300
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "id", "value": "=eq.{{ $json.call_id }}" },
-            { "name": "select", "value": "*" }
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.call_id }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
           ]
         },
         "options": {}
@@ -45,15 +63,24 @@
       "name": "Generate Meeting Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [700, 300],
+      "position": [
+        700,
+        300
+      ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer ={{ $env.GROQ_API_KEY }}" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -62,7 +89,15 @@
           "mode": "raw",
           "rawBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 3000,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert meeting intelligence agent for WeBuildTrades, a UK marketing agency for trade businesses.\\n\\nYour job is to analyze a meeting transcript and extract everything important so that anyone who missed the meeting can get fully up to speed in under 2 minutes.\\n\\nAlways be specific â€” name the person, quote what they said, and give exact next steps with owners.\\n\\nReturn ONLY valid JSON. No markdown outside the JSON. Use this exact schema:\\n{\\n  \\\"title\\\": \\\"<short meeting title, 5-8 words>\\\",\\n  \\\"one_line_summary\\\": \\\"<single sentence â€” what this meeting was about and what was decided>\\\",\\n  \\\"key_points\\\": [\\\"<bullet: important point, decision, or update â€” keep each under 20 words>\\\"],\\n  \\\"decisions_made\\\": [{\\\"decision\\\": \\\"<what was decided>\\\", \\\"decided_by\\\": \\\"<name>\\\", \\\"context\\\": \\\"<why, 1 sentence>\\\"}],\\n  \\\"action_items\\\": [{\\\"task\\\": \\\"<what needs to be done>\\\", \\\"owner\\\": \\\"<name>\\\", \\\"due\\\": \\\"<date or null>\\\", \\\"priority\\\": \\\"high\\\"|\\\"medium\\\"|\\\"low\\\"}],\\n  \\\"improvements_suggested\\\": [{\\\"area\\\": \\\"<area>\\\", \\\"suggestion\\\": \\\"<what was suggested>\\\", \\\"suggested_by\\\": \\\"<name>\\\"}],\\n  \\\"open_questions\\\": [\\\"<question raised but not answered>\\\"],\\n  \\\"next_meeting_topics\\\": [\\\"<topics for next time>\\\"]\\n}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this meeting transcript and produce the structured summary:\\n\\nCall type: {{ $('Get Call').first().json[0].call_type }}\\nDuration: {{ $('Get Call').first().json[0].duration_seconds }} seconds\\n\\nTranscript:\\n{{ $('Get Call').first().json[0].transcript_raw || 'No transcript available.' }}\"\n    }\n  ]\n}"
         },
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic-header-auth",
+          "name": "Anthropic Header Auth"
+        }
       }
     },
     {
@@ -70,10 +105,13 @@
       "name": "Parse Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 300],
+      "position": [
+        960,
+        300
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const responseText = $input.first().json.choices?.[0]?.message?.content || '';\nconst callId = $('Webhook').first().json.call_id;\n\nlet summary;\ntry {\n  summary = JSON.parse(responseText);\n} catch (e) {\n  throw new Error('Failed to parse meeting summary: ' + responseText.substring(0, 300));\n}\n\nif (!Array.isArray(summary.key_points)) summary.key_points = [];\nif (!Array.isArray(summary.decisions_made)) summary.decisions_made = [];\nif (!Array.isArray(summary.action_items)) summary.action_items = [];\nif (!Array.isArray(summary.improvements_suggested)) summary.improvements_suggested = [];\nif (!Array.isArray(summary.open_questions)) summary.open_questions = [];\nif (!Array.isArray(summary.next_meeting_topics)) summary.next_meeting_topics = [];\n\nreturn [{ json: { call_id: callId, summary } }];"
+        "jsCode": "const responseText = $input.first().json.content?.[0]?.text || '';\nconst callId = $('Webhook').first().json.call_id;\n\nlet summary;\ntry {\n  summary = JSON.parse(responseText);\n} catch (e) {\n  throw new Error('Failed to parse meeting summary: ' + responseText.substring(0, 300));\n}\n\nif (!Array.isArray(summary.key_points)) summary.key_points = [];\nif (!Array.isArray(summary.decisions_made)) summary.decisions_made = [];\nif (!Array.isArray(summary.action_items)) summary.action_items = [];\nif (!Array.isArray(summary.improvements_suggested)) summary.improvements_suggested = [];\nif (!Array.isArray(summary.open_questions)) summary.open_questions = [];\nif (!Array.isArray(summary.next_meeting_topics)) summary.next_meeting_topics = [];\n\nreturn [{ json: { call_id: callId, summary } }];"
       }
     },
     {
@@ -81,17 +119,32 @@
       "name": "Store Summary in Scorecard",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1200, 300],
+      "position": [
+        1200,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
           ]
         },
         "sendBody": true,
@@ -108,7 +161,10 @@
       "name": "Store Action Items as Evidence",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1440, 300],
+      "position": [
+        1440,
+        300
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "const scorecardId = $('Store Summary in Scorecard').first().json[0].id;\nconst summary = $('Parse Summary').first().json.summary;\n\nconst evidenceRows = (summary.action_items || []).map(item => ({ scorecard_id: scorecardId, criterion_key: 'action_item', quote: item.task + (item.owner ? ' â€” Owner: ' + item.owner : '') + (item.due ? ' â€” Due: ' + item.due : ''), timestamp_seconds: null }));\nconst decisionRows = (summary.decisions_made || []).map(d => ({ scorecard_id: scorecardId, criterion_key: 'decision', quote: d.decision + (d.decided_by ? ' (decided by ' + d.decided_by + ')' : ''), timestamp_seconds: null }));\nconst questionRows = (summary.open_questions || []).map(q => ({ scorecard_id: scorecardId, criterion_key: 'open_question', quote: q, timestamp_seconds: null }));\n\nconst allRows = [...evidenceRows, ...decisionRows, ...questionRows];\nif (allRows.length === 0) return [{ json: { __skip: true } }];\nreturn [{ json: { evidence: allRows } }];"
@@ -119,11 +175,28 @@
       "name": "Has Evidence?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1660, 300],
+      "position": [
+        1660,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-ev-06", "leftValue": "={{ $json.__skip }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-ev-06",
+              "leftValue": "={{ $json.__skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
           "combinator": "and"
         }
       }
@@ -133,22 +206,40 @@
       "name": "Insert Evidence",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1860, 200],
+      "position": [
+        1860,
+        200
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecard_evidence",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={{ JSON.stringify($json.evidence) }}" },
+        "body": {
+          "mode": "raw",
+          "rawBody": "={{ JSON.stringify($json.evidence) }}"
+        },
         "options": {}
       }
     },
@@ -157,24 +248,49 @@
       "name": "Update Call Scored",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2060, 300],
+      "position": [
+        2060,
+        300
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/calls",
         "sendQuery": true,
-        "queryParameters": { "parameters": [{ "name": "id", "value": "=eq.{{ $('Webhook').first().json.call_id }}" }] },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $('Webhook').first().json.call_id }}"
+            }
+          ]
+        },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={ \"status\": \"scored\" }" },
+        "body": {
+          "mode": "raw",
+          "rawBody": "={ \"status\": \"scored\" }"
+        },
         "options": {}
       }
     },
@@ -183,15 +299,26 @@
       "name": "Trigger Notify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2260, 300],
+      "position": [
+        2260,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://n8nserver.metaviz.pro/webhook/call-notify",
         "sendHeaders": true,
-        "headerParameters": [{ "name": "Content-Type", "value": "application/json" }],
+        "headerParameters": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "sendBody": true,
         "contentType": "json",
-        "body": { "mode": "raw", "rawBody": "={ \"call_id\": \"{{ $('Webhook').first().json.call_id }}\" }" },
+        "body": {
+          "mode": "raw",
+          "rawBody": "={ \"call_id\": \"{{ $('Webhook').first().json.call_id }}\" }"
+        },
         "options": {}
       }
     },
@@ -200,33 +327,141 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2460, 300],
+      "position": [
+        2460,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"ok\": true }",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Get Call", "type": "main", "index": 0 }]] },
-    "Get Call": { "main": [[{ "node": "Generate Meeting Summary", "type": "main", "index": 0 }]] },
-    "Generate Meeting Summary": { "main": [[{ "node": "Parse Summary", "type": "main", "index": 0 }]] },
-    "Parse Summary": { "main": [[{ "node": "Store Summary in Scorecard", "type": "main", "index": 0 }]] },
-    "Store Summary in Scorecard": { "main": [[{ "node": "Store Action Items as Evidence", "type": "main", "index": 0 }]] },
-    "Store Action Items as Evidence": { "main": [[{ "node": "Has Evidence?", "type": "main", "index": 0 }]] },
-    "Has Evidence?": {
+    "Webhook": {
       "main": [
-        [{ "node": "Insert Evidence", "type": "main", "index": 0 }],
-        [{ "node": "Update Call Scored", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Insert Evidence": { "main": [[{ "node": "Update Call Scored", "type": "main", "index": 0 }]] },
-    "Update Call Scored": { "main": [[{ "node": "Trigger Notify", "type": "main", "index": 0 }]] },
-    "Trigger Notify": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+    "Get Call": {
+      "main": [
+        [
+          {
+            "node": "Generate Meeting Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Meeting Summary": {
+      "main": [
+        [
+          {
+            "node": "Parse Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Summary": {
+      "main": [
+        [
+          {
+            "node": "Store Summary in Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Summary in Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Store Action Items as Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Action Items as Evidence": {
+      "main": [
+        [
+          {
+            "node": "Has Evidence?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Evidence?": {
+      "main": [
+        [
+          {
+            "node": "Insert Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Call Scored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Evidence": {
+      "main": [
+        [
+          {
+            "node": "Update Call Scored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Call Scored": {
+      "main": [
+        [
+          {
+            "node": "Trigger Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Notify": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567806"
 }
-

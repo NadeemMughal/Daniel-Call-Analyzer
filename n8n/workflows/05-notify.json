@@ -6,7 +6,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "call-notify",
@@ -19,23 +22,41 @@
       "name": "Get Participants",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 200],
+      "position": [
+        460,
+        200
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/call_participants",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "call_id", "value": "=eq.{{ $json.call_id }}" },
-            { "name": "is_external", "value": "eq.false" },
-            { "name": "select", "value": "*,team_members(name,email,role)" }
+            {
+              "name": "call_id",
+              "value": "=eq.{{ $json.call_id }}"
+            },
+            {
+              "name": "is_external",
+              "value": "eq.false"
+            },
+            {
+              "name": "select",
+              "value": "*,team_members(name,email,role)"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
           ]
         },
         "options": {}
@@ -46,23 +67,41 @@
       "name": "Get Rule Findings",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 400],
+      "position": [
+        460,
+        400
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/rule_findings",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "call_id", "value": "=eq.{{ $('Webhook').first().json.call_id }}" },
-            { "name": "select", "value": "*" },
-            { "name": "order", "value": "severity.desc" }
+            {
+              "name": "call_id",
+              "value": "=eq.{{ $('Webhook').first().json.call_id }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "severity.desc"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
           ]
         },
         "options": {}
@@ -73,24 +112,45 @@
       "name": "Get Scorecard",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 580],
+      "position": [
+        460,
+        580
+      ],
       "parameters": {
         "method": "GET",
         "url": "https://fybvnwidpnxnouaukrnb.supabase.co/rest/v1/scorecards",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "call_id", "value": "=eq.{{ $('Webhook').first().json.call_id }}" },
-            { "name": "select", "value": "*" },
-            { "name": "order", "value": "created_at.desc" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "call_id",
+              "value": "=eq.{{ $('Webhook').first().json.call_id }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
-            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
           ]
         },
         "options": {}
@@ -101,7 +161,10 @@
       "name": "Build Email List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [700, 300],
+      "position": [
+        700,
+        300
+      ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "const participants = $('Get Participants').all();\nconst scorecard = $('Get Scorecard').first().json[0];\nconst ruleFindings = $('Get Rule Findings').all().map(i => i.json);\nconst callId = $('Webhook').first().json.call_id;\nconst portalUrl = 'https://daniel-call-analyzer.vercel.app/calls/' + callId;\n\nif (!scorecard) return [{ json: { __no_scorecard: true } }];\n\nconst score = parseFloat(scorecard.overall_score) || 0;\nconst scoreTier = score >= 8.5 ? 'EXCELLENT' : score >= 7 ? 'GOOD' : score >= 5 ? 'NEEDS_WORK' : 'POOR';\n\nconst compact_analysis = {\n  call_id: callId,\n  overall_score: score,\n  score_tier: scoreTier,\n  executive_summary: scorecard.summary || '',\n  strengths: (scorecard.strengths || []).slice(0, 3),\n  improvements: (scorecard.improvements || []).slice(0, 3),\n  language_flags: ruleFindings\n    .filter(f => f.severity === 'critical' || f.severity === 'warning')\n    .slice(0, 5)\n    .map(f => ({ rule: f.rule_key, value: f.value, severity: f.severity })),\n  coaching_priorities: ruleFindings\n    .filter(f => f.value && f.value.suggestion)\n    .slice(0, 3)\n    .map((f, i) => ({ priority: i + 1, area: f.rule_key, detail: f.value.suggestion }))\n};\n\nconst emailTargets = participants\n  .filter(p => p.json.team_members && p.json.team_members.email)\n  .map(p => ({\n    to: p.json.team_members.email,\n    recipient_name: p.json.team_members.name || 'Team Member',\n    compact_analysis_json: JSON.stringify(compact_analysis),\n    portal_url: portalUrl\n  }));\n\nemailTargets.push({ to: 'muhammadammaralibhutta@gmail.com', recipient_name: 'Ammar Ali', compact_analysis_json: JSON.stringify(compact_analysis), portal_url: portalUrl });\nreturn emailTargets.map(t => ({ json: t }));"
@@ -112,49 +175,86 @@
       "name": "Has Recipients?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [920, 300],
+      "position": [
+        920,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [{ "id": "cond-recipients-01", "leftValue": "={{ $json.__no_recipients || $json.__no_scorecard }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-recipients-01",
+              "leftValue": "={{ $json.__no_recipients || $json.__no_scorecard }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
           "combinator": "and"
         }
       }
     },
     {
       "id": "a1b2c3d4-0005-0005-0005-000000000008",
-      "name": "Build Groq Request",
+      "name": "Build Anthropic Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1140, 200],
+      "position": [
+        1140,
+        200
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const item = $input.item.json;\nconst systemPrompt = 'You are an email formatter for WeBuildTrades. You receive a structured call analysis JSON and produce a professional HTML email for the management team. Rules: (1) inline CSS only - palette #1A1A2E headers, #E94560 warnings/red-flags, #0F9B8E wins/positives, #F5F5F5 section backgrounds, #FFFFFF body; (2) font Arial Helvetica sans-serif; (3) max-width 600px mobile-friendly; (4) score tier badge must be prominent - use large font and colour-coded background; (5) max 3 coaching priorities in email. Sections in order: [1] WeBuildTrades header with call date [2] Score badge (EXCELLENT/GOOD/NEEDS_WORK/POOR) plus numeric score [3] Executive summary 2-3 sentences [4] Key Wins - up to 3 bullets from strengths [5] Red Flags - up to 3 bullets from improvements [6] Top 3 Coaching Priorities with detail [7] Language Report showing banned words and tone [8] View Full Scorecard button linking to portal URL [9] Footer with unsubscribe note. Output ONLY the complete HTML email string. No JSON. No markdown. No preamble.';\nconst userPrompt = 'Convert the following call analysis JSON into a professional HTML email. Apply all design rules exactly.\\n\\nCALL ANALYSIS JSON:\\n' + item.compact_analysis_json + '\\n\\nPORTAL URL FOR THIS CALL: ' + item.portal_url + '\\nRECIPIENT NAME: ' + item.recipient_name + '\\n\\nReturn only the HTML string.';\nreturn [{\n  json: {\n    to: item.to,\n    recipient_name: item.recipient_name,\n    compact_analysis_json: item.compact_analysis_json,\n    groq_request_body: {\n      model: 'llama-3.3-70b-versatile',\n      max_tokens: 2048,\n      messages: [\n        { role: 'system', content: systemPrompt },\n        { role: 'user', content: userPrompt }\n      ]\n    }\n  }\n}];"
+        "jsCode": "const item = $input.item.json;\nconst systemPrompt = 'You are an email formatter for WeBuildTrades. You receive a structured call analysis JSON and produce a professional HTML email for the management team. Rules: (1) inline CSS only - palette #1A1A2E headers, #E94560 warnings/red-flags, #0F9B8E wins/positives, #F5F5F5 section backgrounds, #FFFFFF body; (2) font Arial Helvetica sans-serif; (3) max-width 600px mobile-friendly; (4) score tier badge must be prominent - use large font and colour-coded background; (5) max 3 coaching priorities in email. Sections in order: [1] WeBuildTrades header with call date [2] Score badge (EXCELLENT/GOOD/NEEDS_WORK/POOR) plus numeric score [3] Executive summary 2-3 sentences [4] Key Wins - up to 3 bullets from strengths [5] Red Flags - up to 3 bullets from improvements [6] Top 3 Coaching Priorities with detail [7] Language Report showing banned words and tone [8] View Full Scorecard button linking to portal URL [9] Footer with unsubscribe note. Output ONLY the complete HTML email string. No JSON. No markdown. No preamble.';\nconst userPrompt = 'Convert the following call analysis JSON into a professional HTML email. Apply all design rules exactly.\\n\\nCALL ANALYSIS JSON:\\n' + item.compact_analysis_json + '\\n\\nPORTAL URL FOR THIS CALL: ' + item.portal_url + '\\nRECIPIENT NAME: ' + item.recipient_name + '\\n\\nReturn only the HTML string.';\nreturn [{\n  json: {\n    to: item.to,\n    recipient_name: item.recipient_name,\n    compact_analysis_json: item.compact_analysis_json,\n    anthropic_request_body: {\n      model: 'claude-sonnet-4-6',\n      max_tokens: 2048,\n      system: systemPrompt,\n        messages: [\n        { role: 'user', content: userPrompt }\n      ]\n    }\n  }\n}];"
       }
     },
     {
       "id": "a1b2c3d4-0005-0005-0005-000000000009",
-      "name": "Format Email with Groq",
+      "name": "Format Email with Claude",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1360, 200],
+      "position": [
+        1360,
+        200
+      ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer ={{ $env.GROQ_API_KEY }}" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "json",
         "body": {
           "mode": "raw",
-          "rawBody": "={{ JSON.stringify($json.groq_request_body) }}"
+          "rawBody": "={{ JSON.stringify($json.anthropic_request_body) }}"
         },
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic-header-auth",
+          "name": "Anthropic Header Auth"
+        }
       }
     },
     {
@@ -162,10 +262,13 @@
       "name": "Extract HTML Body",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1580, 200],
+      "position": [
+        1580,
+        200
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const groqResponse = $input.item.json;\nconst prevData = $('Build Groq Request').item.json;\nconst html = groqResponse.choices && groqResponse.choices[0] && groqResponse.choices[0].message\n  ? groqResponse.choices[0].message.content\n  : '<p>Scorecard ready. View in portal.</p>';\nconst analysis = JSON.parse(prevData.compact_analysis_json || '{}');\nreturn [{\n  json: {\n    to: prevData.to,\n    overall_score: analysis.overall_score || '',\n    html_body: html\n  }\n}];"
+        "jsCode": "const aiResponse = $input.item.json;\nconst prevData = $('Build Anthropic Request').item.json;\nconst html = aiResponse.content && aiResponse.content[0]\n  ? aiResponse.content[0].text\n  : '<p>Scorecard ready. View in portal.</p>';\nconst analysis = JSON.parse(prevData.compact_analysis_json || '{}');\nreturn [{\n  json: {\n    to: prevData.to,\n    overall_score: analysis.overall_score || '',\n    html_body: html\n  }\n}];"
       }
     },
     {
@@ -173,7 +276,10 @@
       "name": "Send Email",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2,
-      "position": [1800, 200],
+      "position": [
+        1800,
+        200
+      ],
       "credentials": {
         "gmailOAuth2": {
           "id": "gmail-oauth2",
@@ -195,38 +301,151 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1800, 400],
+      "position": [
+        1800,
+        400
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"ok\": true }",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [[
-        { "node": "Get Participants", "type": "main", "index": 0 },
-        { "node": "Get Rule Findings", "type": "main", "index": 0 },
-        { "node": "Get Scorecard", "type": "main", "index": 0 }
-      ]]
-    },
-    "Get Participants": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
-    "Get Rule Findings": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
-    "Get Scorecard": { "main": [[{ "node": "Build Email List", "type": "main", "index": 0 }]] },
-    "Build Email List": { "main": [[{ "node": "Has Recipients?", "type": "main", "index": 0 }]] },
-    "Has Recipients?": {
       "main": [
-        [{ "node": "Build Groq Request", "type": "main", "index": 0 }],
-        [{ "node": "Respond 200", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Participants",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Rule Findings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Build Groq Request": { "main": [[{ "node": "Format Email with Groq", "type": "main", "index": 0 }]] },
-    "Format Email with Groq": { "main": [[{ "node": "Extract HTML Body", "type": "main", "index": 0 }]] },
-    "Extract HTML Body": { "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]] },
-    "Send Email": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+    "Get Participants": {
+      "main": [
+        [
+          {
+            "node": "Build Email List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Rule Findings": {
+      "main": [
+        [
+          {
+            "node": "Build Email List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Scorecard": {
+      "main": [
+        [
+          {
+            "node": "Build Email List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email List": {
+      "main": [
+        [
+          {
+            "node": "Has Recipients?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Recipients?": {
+      "main": [
+        [
+          {
+            "node": "Build Anthropic Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Anthropic Request": {
+      "main": [
+        [
+          {
+            "node": "Format Email with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email with Claude": {
+      "main": [
+        [
+          {
+            "node": "Extract HTML Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract HTML Body": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "versionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567895"
 }
