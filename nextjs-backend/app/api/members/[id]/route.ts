@@ -8,6 +8,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const user = await getAuthUser(req)
   if (!user) return unauthorized()
 
+  // Reps can only view their own profile; managers only their department's members
+  if (user.role === 'rep' && user.id !== params.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (user.role === 'manager' && user.department_id) {
+    const { data: m } = await supabase.from('team_members').select('department_id').eq('id', params.id).single()
+    if (!m || m.department_id !== user.department_id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const [memberRes, partsRes, trendsRes] = await Promise.all([
     supabase.from('team_members').select('id, name, email, role, department_id, departments(name)').eq('id', params.id).single(),
     supabase.from('call_participants').select(`calls(id, call_type, status, recorded_at, duration_seconds, clients(name), scorecards(overall_score, summary, strengths, improvements))`).eq('team_member_id', params.id).eq('is_external', false).limit(300),

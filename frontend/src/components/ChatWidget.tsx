@@ -47,7 +47,7 @@ export default function ChatWidget() {
     setLoading(true)
 
     try {
-      const data = await (api as any).chat.send(updated)
+      const data = await api.chat.send(updated)
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply ?? 'No response.' }])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }])
