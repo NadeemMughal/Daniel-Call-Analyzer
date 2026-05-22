@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { api } from '@/lib/api'
 import { useAuth, useProfile } from '@/lib/auth'
 import { cn } from '@/lib/utils'
+import ChatWidget from './ChatWidget'
 
 const PRIMARY_NAV = [
   { to: '/dashboard', label: 'Dashboard',  icon: LayoutDashboard, adminOnly: false },
@@ -169,6 +170,7 @@ export default function Layout() {
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
+      <ChatWidget />
     </div>
   )
 }

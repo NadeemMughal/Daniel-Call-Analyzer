@@ -53,4 +53,8 @@ export const api = {
   trends: {
     member: (memberId: string) => authFetch(`/trends/${memberId}`),
   },
+  chat: {
+    send: (messages: { role: string; content: string }[]) =>
+      authFetch('/chat', { method: 'POST', body: JSON.stringify({ messages }) }),
+  },
 }
