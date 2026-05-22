@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY!
 const TOKEN_TTL  = 7 * 24 * 3600
 
-const CREDENTIALS: Record<string, string> = {
-  'ai@webuildtrades.com':         'WBT-Ammar-2026!',
-  'aisupport@webuildtrades.com':  'WBT-Ammar-2026!',
-  'jas@webuildtrades.com':        'WBT-Jas-2026!',
-  'zain@webuildtrades.com':       'WBT-Zain-2026!',
-  'daniel@webuildtrades.com':     'WBT-Daniel-2026!',
-}
+// Anon client for signInWithPassword (service role bypasses auth)
+const supabaseAnon = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+)
 
 function signToken(payload: object): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -20,17 +19,25 @@ function signToken(payload: object): string {
   return `${header}.${body}.${sig}`
 }
 
-export async function OPTIONS() {
-  return new Response(null, { status: 204 })
-}
+export async function OPTIONS() { return new Response(null, { status: 204 }) }
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json()
   if (!email || !password) return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
 
   const normalised = (email as string).toLowerCase().trim()
-  const expected   = CREDENTIALS[normalised]
-  if (!expected || password !== expected) return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+
+  // Try Supabase Auth first (users registered in Supabase)
+  const { error: authError } = await supabaseAnon.auth.signInWithPassword({ email: normalised, password })
+
+  if (authError) {
+    // Fallback: environment variable credentials (set PORTAL_CREDENTIALS in Vercel/env)
+    let envCreds: Record<string, string> = {}
+    try { envCreds = JSON.parse(process.env.PORTAL_CREDENTIALS ?? '{}') } catch { /* */ }
+    if (!envCreds[normalised] || password !== envCreds[normalised]) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+    }
+  }
 
   const { data: member, error } = await supabase
     .from('team_members')
