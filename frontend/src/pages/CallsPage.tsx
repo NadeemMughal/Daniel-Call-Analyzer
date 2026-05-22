@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { api } from '@/lib/api'
 import { formatDuration, formatDateTime } from '@/lib/utils'
 import type { Call, CallType, CallStatus } from '@/types'
-import { Search, Clock, User, ArrowRight, X } from 'lucide-react'
+import { Search, Clock, User, ArrowRight, X, AlertCircle, ChevronDown, ChevronRight, Loader2, AlertTriangle } from 'lucide-react'
 import ScoreRing from '@/components/ScoreRing'
 
 const CALL_TYPE_TINT: Record<string, string> = {
@@ -110,6 +110,18 @@ export default function CallsPage() {
   const phaseOptions = Array.from(new Set(calls.map(c => c.meeting_phase).filter(Boolean) as string[]))
     .sort()
 
+  const [attentionOpen, setAttentionOpen] = useState(true)
+
+  // Split calls: needs attention (pending/failed/no data) vs processed
+  const needsAttention = filtered.filter(c =>
+    c.status === 'pending' || c.status === 'failed' ||
+    (!c.scorecards?.[0] && c.status !== 'processing')
+  )
+  const processed = filtered.filter(c =>
+    c.status === 'scored' || c.status === 'processing' ||
+    (c.scorecards?.[0] && c.status !== 'pending' && c.status !== 'failed')
+  )
+
   const stats = {
     total: calls.length,
     scored: calls.filter(c => c.status === 'scored').length,
@@ -193,61 +205,169 @@ export default function CallsPage() {
       ) : filtered.length === 0 ? (
         <div className="card py-20 text-center text-gray-500">No calls found</div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[hsl(222,32%,15%)] bg-[hsl(222,47%,6%)]">
-                <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Score</th>
-                <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Type · Client</th>
-                <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Rep</th>
-                <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Date</th>
-                <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Duration</th>
-                <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(call => {
-                const host = (call.call_participants ?? []).find(p => p.role === 'host' && !p.is_external)
-                const score = call.scorecards?.[0]?.overall_score ?? null
-                return (
-                  <tr key={call.id} className="border-b border-[hsl(222,32%,12%)] last:border-0 hover:bg-white/[0.02] transition group">
-                    <td className="px-5 py-4"><ScoreRing score={score} size="sm" /></td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                        {call.meeting_phase && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border bg-violet-500/10 text-violet-300 border-violet-500/30">
-                            {PHASE_LABELS[call.meeting_phase] || call.meeting_phase}
-                          </span>
-                        )}
-                        {call.call_type && (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border ${CALL_TYPE_TINT[call.call_type] || CALL_TYPE_TINT.other}`}>
-                            {call.call_type.replace(/_/g, ' ')}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-gray-300 font-medium text-[13px]">{call.clients?.name ?? '—'}</div>
-                    </td>
-                    <td className="px-5 py-4 text-gray-300">
-                      <div className="flex items-center gap-2"><User className="w-3.5 h-3.5 text-gray-500" />{host?.team_members?.name ?? '—'}</div>
-                    </td>
-                    <td className="px-5 py-4 text-gray-400 text-[13px]">{call.recorded_at ? formatDateTime(call.recorded_at) : '—'}</td>
-                    <td className="px-5 py-4 text-gray-500 text-[13px]">
-                      <div className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{call.duration_seconds ? formatDuration(call.duration_seconds) : '—'}</div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium uppercase ${STATUS_TINT[call.status]}`}>{call.status}</span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <Link to={`/calls/${call.id}`} className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition text-[13px] font-medium">
-                        View <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </td>
+        <div className="space-y-6">
+
+          {/* ── Needs Attention section ── */}
+          {needsAttention.length > 0 && (
+            <div className="rounded-xl border border-amber-500/20 overflow-hidden">
+              {/* header */}
+              <button
+                onClick={() => setAttentionOpen(v => !v)}
+                className="w-full flex items-center gap-3 px-5 py-3 bg-amber-500/5 hover:bg-amber-500/10 transition text-left"
+              >
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-amber-300 font-semibold text-sm flex-1">
+                  Needs Attention
+                </span>
+                <span className="text-[11px] text-amber-500/80 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5 font-mono font-semibold">
+                  {needsAttention.length} call{needsAttention.length !== 1 ? 's' : ''}
+                </span>
+                <span className="text-[11px] text-amber-600 ml-2">
+                  These calls have no transcript, score, or summary yet
+                </span>
+                {attentionOpen
+                  ? <ChevronDown className="w-4 h-4 text-amber-500 shrink-0" />
+                  : <ChevronRight className="w-4 h-4 text-amber-500 shrink-0" />
+                }
+              </button>
+
+              {attentionOpen && (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-amber-500/10 bg-[hsl(222,47%,5%)]">
+                      <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                      <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Type · Client</th>
+                      <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Rep</th>
+                      <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Date</th>
+                      <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Duration</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {needsAttention.map(call => {
+                      const host = (call.call_participants ?? []).find(p => p.role === 'host' && !p.is_external)
+                      const isPending = call.status === 'pending'
+                      const isFailed  = call.status === 'failed'
+                      return (
+                        <tr key={call.id} className="border-b border-[hsl(222,32%,12%)] last:border-0 hover:bg-white/[0.02] transition group">
+                          <td className="px-5 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium uppercase ${STATUS_TINT[call.status] ?? 'bg-gray-500/10 text-gray-400'}`}>
+                              {isFailed
+                                ? <AlertTriangle className="w-3 h-3" />
+                                : isPending
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : null
+                              }
+                              {call.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              {call.call_type && (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border ${CALL_TYPE_TINT[call.call_type] || CALL_TYPE_TINT.other}`}>
+                                  {call.call_type.replace(/_/g, ' ')}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-gray-400 font-medium text-[13px]">
+                              {call.clients?.name ?? <span className="text-gray-600 italic">No client</span>}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-gray-400">
+                            <div className="flex items-center gap-2">
+                              <User className="w-3.5 h-3.5 text-gray-600" />
+                              {host?.team_members?.name ?? <span className="text-gray-600">—</span>}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-gray-500 text-[13px]">{call.recorded_at ? formatDateTime(call.recorded_at) : '—'}</td>
+                          <td className="px-5 py-4 text-gray-600 text-[13px]">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              {call.duration_seconds ? formatDuration(call.duration_seconds) : '—'}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <Link to={`/calls/${call.id}`} className="text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition text-[13px] font-medium">
+                              View <ArrowRight className="w-3.5 h-3.5" />
+                            </Link>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {/* ── Processed calls ── */}
+          {processed.length > 0 && (
+            <div className="card overflow-hidden">
+              {needsAttention.length > 0 && (
+                <div className="px-5 py-3 border-b border-[hsl(222,32%,15%)] bg-[hsl(222,47%,6%)] flex items-center gap-2">
+                  <span className="text-gray-400 font-semibold text-sm flex-1">Processed Calls</span>
+                  <span className="text-[11px] text-emerald-500/80 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5 font-mono font-semibold">
+                    {processed.length} call{processed.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[hsl(222,32%,15%)] bg-[hsl(222,47%,6%)]">
+                    <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Score</th>
+                    <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Type · Client</th>
+                    <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Rep</th>
+                    <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Date</th>
+                    <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Duration</th>
+                    <th className="text-left px-5 py-3 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                    <th />
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {processed.map(call => {
+                    const host = (call.call_participants ?? []).find(p => p.role === 'host' && !p.is_external)
+                    const score = call.scorecards?.[0]?.overall_score ?? null
+                    return (
+                      <tr key={call.id} className="border-b border-[hsl(222,32%,12%)] last:border-0 hover:bg-white/[0.02] transition group">
+                        <td className="px-5 py-4"><ScoreRing score={score} size="sm" /></td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                            {call.meeting_phase && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border bg-violet-500/10 text-violet-300 border-violet-500/30">
+                                {PHASE_LABELS[call.meeting_phase] || call.meeting_phase}
+                              </span>
+                            )}
+                            {call.call_type && (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border ${CALL_TYPE_TINT[call.call_type] || CALL_TYPE_TINT.other}`}>
+                                {call.call_type.replace(/_/g, ' ')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-gray-300 font-medium text-[13px]">{call.clients?.name ?? '—'}</div>
+                        </td>
+                        <td className="px-5 py-4 text-gray-300">
+                          <div className="flex items-center gap-2"><User className="w-3.5 h-3.5 text-gray-500" />{host?.team_members?.name ?? '—'}</div>
+                        </td>
+                        <td className="px-5 py-4 text-gray-400 text-[13px]">{call.recorded_at ? formatDateTime(call.recorded_at) : '—'}</td>
+                        <td className="px-5 py-4 text-gray-500 text-[13px]">
+                          <div className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{call.duration_seconds ? formatDuration(call.duration_seconds) : '—'}</div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium uppercase ${STATUS_TINT[call.status]}`}>{call.status}</span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <Link to={`/calls/${call.id}`} className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition text-[13px] font-medium">
+                            View <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
         </div>
       )}
     </div>
