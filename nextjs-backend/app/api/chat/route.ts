@@ -164,7 +164,7 @@ When giving coaching advice, be specific and encouraging.`
   let response = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, tools: TOOLS, messages: anthropicMessages })
 
   while (response.stop_reason === 'tool_use') {
-    const toolUseBlocks = response.content.filter((b: any) => b.type === 'tool_use')
+    const toolUseBlocks: any[] = response.content.filter((b: any) => b.type === 'tool_use')
     const toolResults: any[] = []
 
     for (const block of toolUseBlocks) {
