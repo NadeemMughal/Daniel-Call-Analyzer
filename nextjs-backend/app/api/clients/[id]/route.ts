@@ -4,15 +4,17 @@ import { getAuthUser, unauthorized } from '@/lib/auth'
 
 export async function OPTIONS() { return new Response(null, { status: 204 }) }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(req)
   if (!user) return unauthorized()
+
+  const { id } = await params
 
   // Build scoped calls query
   let callsQ = supabase
     .from('calls')
     .select(`id, call_type, status, recorded_at, duration_seconds, scorecards(id, overall_score, summary), call_participants(id, role, is_external, team_members(id, name))`)
-    .eq('client_id', params.id)
+    .eq('client_id', id)
     .order('recorded_at', { ascending: false })
     .limit(200)
   if (user.role === 'manager' && user.department_id) callsQ = (callsQ as any).eq('department_id', user.department_id)
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 
   const [clientRes, callsRes] = await Promise.all([
-    supabase.from('clients').select('id, name, leadhub_id').eq('id', params.id).single(),
+    supabase.from('clients').select('id, name, leadhub_id').eq('id', id).single(),
     callsQ,
   ])
 
