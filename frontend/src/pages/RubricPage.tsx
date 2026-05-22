@@ -344,7 +344,9 @@ function SectionCard({ title, badge, color, description, onAdd, children }: any)
   )
 }
 
-function Input({ value, onChange, placeholder, className = '', type = 'text' }: any) {
+function Input({ value, onChange, placeholder, className = '', type = 'text' }: {
+  value: string | number; onChange: (v: string) => void; placeholder?: string; className?: string; type?: string
+}) {
   return (
     <input
       type={type}
@@ -356,19 +358,21 @@ function Input({ value, onChange, placeholder, className = '', type = 'text' }: 
   )
 }
 
-function Select({ value, options, onChange }: any) {
+function Select({ value, options, onChange }: {
+  value: string; options: { value: string; label: string }[]; onChange: (v: string) => void
+}) {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
       className="bg-[hsl(222,47%,5%)] border border-[hsl(222,32%,18%)] rounded-md px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500/50"
     >
-      {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   )
 }
 
-function IconBtn({ onClick, children }: any) {
+function IconBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <button onClick={onClick} className="text-red-400/60 hover:text-red-400 hover:bg-red-500/10 p-1.5 rounded transition">
       {children}

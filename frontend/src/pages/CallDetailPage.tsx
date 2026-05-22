@@ -84,7 +84,7 @@ function scoreBarColor(s: number | null | undefined) {
 type Tab = 'intelligence' | 'scorecard' | 'findings' | 'transcript'
 
 interface ScorecardWithEvidence extends Scorecard {
-  scorecard_evidence?: Array<{ id: string; criterion_key: string; quote: string; timestamp_seconds: number | null }>
+  scorecard_evidence?: Array<{ id: string; scorecard_id: string; criterion_key: string; quote: string; timestamp_seconds: number | null }>
 }
 
 export default function CallDetailPage() {
