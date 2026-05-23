@@ -20,14 +20,27 @@ export async function GET(req: NextRequest) {
       repCallIds = [...new Set((myParts ?? []).map((p: any) => p.call_id))]
     }
 
+    let managerCallIds: string[] | null = null
+    if (role === 'manager') {
+      const [partsResult, deptResult] = await Promise.all([
+        supabase.from('call_participants').select('call_id').eq('team_member_id', userId),
+        department_id
+          ? supabase.from('calls').select('id').eq('department_id', department_id)
+          : Promise.resolve({ data: [] as { id: string }[] | null }),
+      ])
+      const partIds = partsResult.data?.map((p: any) => p.call_id) ?? []
+      const deptIds = deptResult.data?.map((c: any) => c.id) ?? []
+      managerCallIds = [...new Set([...partIds, ...deptIds])]
+    }
+
     function scope(q: any) {
-      if (role === 'manager' && department_id) return q.eq('department_id', department_id)
+      if (role === 'manager') return managerCallIds?.length ? q.in('id', managerCallIds.slice(0, 500)) : q.in('id', ['00000000-0000-0000-0000-000000000000'])
       if (role === 'rep' && repCallIds) return q.in('id', repCallIds.slice(0, 500))
       return q
     }
     function scopedScores() {
       const base = supabase.from('scorecards').select('overall_score').not('overall_score', 'is', null)
-      if (role === 'manager' && department_id) return (supabase as any).from('scorecards').select('overall_score, calls!inner(department_id)').eq('calls.department_id', department_id).not('overall_score', 'is', null)
+      if (role === 'manager') return managerCallIds?.length ? (base as any).in('call_id', managerCallIds.slice(0, 500)) : (base as any).in('call_id', ['00000000-0000-0000-0000-000000000000'])
       if (role === 'rep' && repCallIds) return (base as any).in('call_id', repCallIds.slice(0, 500))
       return base
     }

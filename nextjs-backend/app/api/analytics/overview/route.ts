@@ -18,8 +18,23 @@ export async function GET(req: NextRequest) {
     }
 
     const since = new Date(Date.now() - weeksBack * 7 * 86400_000).toISOString()
+
+    let managerCallIds: string[] | null = null
+    if (role === 'manager') {
+      const [partsResult, deptResult] = await Promise.all([
+        supabase.from('call_participants').select('call_id').eq('team_member_id', userId),
+        department_id
+          ? supabase.from('calls').select('id').eq('department_id', department_id)
+          : Promise.resolve({ data: [] as { id: string }[] | null }),
+      ])
+      const partIds = partsResult.data?.map((p: any) => p.call_id) ?? []
+      const deptIds = deptResult.data?.map((c: any) => c.id) ?? []
+      managerCallIds = [...new Set([...partIds, ...deptIds])]
+      if (managerCallIds.length === 0) return NextResponse.json([])
+    }
+
     let q = supabase.from('calls').select('id, recorded_at, scorecards(overall_score)').gte('recorded_at', since).not('recorded_at', 'is', null)
-    if (role === 'manager' && department_id) q = (q as any).eq('department_id', department_id)
+    if (role === 'manager') q = (q as any).in('id', (managerCallIds ?? []).slice(0, 500))
     else if (role === 'rep') {
       const { data: myParts } = await supabase.from('call_participants').select('call_id').eq('team_member_id', userId).eq('is_external', false)
       const ids = (myParts ?? []).map((p: any) => p.call_id as string)

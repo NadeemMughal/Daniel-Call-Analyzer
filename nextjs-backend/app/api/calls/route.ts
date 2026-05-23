@@ -21,10 +21,22 @@ export async function GET(req: NextRequest) {
     if (allowedCallIds.length === 0) return NextResponse.json([])
   }
 
+  if (user.role === 'manager') {
+    const [partsResult, deptResult] = await Promise.all([
+      supabase.from('call_participants').select('call_id').eq('team_member_id', user.id),
+      user.department_id
+        ? supabase.from('calls').select('id').eq('department_id', user.department_id)
+        : Promise.resolve({ data: [] as { id: string }[] | null }),
+    ])
+    const partIds = partsResult.data?.map((p: any) => p.call_id) ?? []
+    const deptIds = deptResult.data?.map((c: any) => c.id) ?? []
+    allowedCallIds = [...new Set([...partIds, ...deptIds])]
+    if (allowedCallIds.length === 0) return NextResponse.json([])
+  }
+
   let q = supabase.from('calls').select(`id, call_type, status, recorded_at, duration_seconds, created_at, department_id, clients(id, name), departments(id, name), call_participants(id, role, is_external, name, email, team_members(id, name, email)), scorecards(id, overall_score, scorecard_evidence(criterion_key, quote))`).order('recorded_at', { ascending: false }).limit(limit)
 
   if (allowedCallIds !== null) q = (q as any).in('id', allowedCallIds)
-  if (user.role === 'manager' && user.department_id) q = (q as any).eq('department_id', user.department_id)
   if (type)   q = (q as any).eq('call_type', type)
   if (status) q = (q as any).eq('status', status)
   if (dept)   q = (q as any).eq('department_id', dept)
