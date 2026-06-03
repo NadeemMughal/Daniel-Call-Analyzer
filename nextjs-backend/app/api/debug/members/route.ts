@@ -26,13 +26,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ env: envStatus, error: 'Missing Supabase env vars' }, { status: 500 })
   }
 
+  // Raw fetch test to see if Supabase host is reachable at all
+  let rawFetchStatus: string
+  try {
+    const ping = await fetch(`${supabaseUrl}/rest/v1/`, {
+      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      signal: AbortSignal.timeout(5000),
+    })
+    rawFetchStatus = `HTTP ${ping.status}`
+  } catch (e: any) {
+    rawFetchStatus = `FAILED: ${e.message}`
+  }
+
   const client = createClient(supabaseUrl, serviceKey)
   const { data, error } = await client
     .from('team_members')
     .select('id, name, email, role')
     .order('name')
 
-  if (error) return NextResponse.json({ env: envStatus, supabase_error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ env: envStatus, raw_fetch: rawFetchStatus, supabase_error: error.message }, { status: 500 })
 
   const portalKeys = (() => { try { return Object.keys(JSON.parse(process.env.PORTAL_CREDENTIALS ?? '{}')) } catch { return [] } })()
 
