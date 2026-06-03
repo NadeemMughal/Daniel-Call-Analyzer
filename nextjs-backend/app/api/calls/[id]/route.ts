@@ -16,8 +16,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       if (!parts?.some((p: any) => p.team_member_id === user.id)) return forbidden()
     }
     if (user.role === 'manager') {
-      const { data: callRow } = await supabase.from('calls').select('department_id').eq('id', id).single()
-      if (callRow?.department_id !== user.department_id) return forbidden()
+      const [callRow, managerPart] = await Promise.all([
+        supabase.from('calls').select('department_id').eq('id', id).single(),
+        supabase.from('call_participants').select('call_id').eq('call_id', id).eq('team_member_id', user.id).limit(1),
+      ])
+      const inDept = callRow.data?.department_id === user.department_id
+      const isParticipant = (managerPart.data?.length ?? 0) > 0
+      if (!inDept && !isParticipant) return forbidden()
     }
   }
 
