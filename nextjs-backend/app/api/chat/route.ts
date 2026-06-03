@@ -66,17 +66,15 @@ async function searchCalls(params: { rep_name?: string; score_min?: number; scor
     .gte('recorded_at', since).order('recorded_at', { ascending: false }).limit(params.limit ?? 10)
 
   if (user.role === 'manager') {
-    const [partsResult, deptResult] = await Promise.all([
-      supabase.from('call_participants').select('call_id').eq('team_member_id', user.id),
-      user.department_id
-        ? supabase.from('calls').select('id').eq('department_id', user.department_id)
-        : Promise.resolve({ data: [] as { id: string }[] | null }),
-    ])
-    const partIds = partsResult.data?.map((p: any) => p.call_id) ?? []
-    const deptIds = deptResult.data?.map((c: any) => c.id) ?? []
-    const allowed = [...new Set([...partIds, ...deptIds])]
-    if (allowed.length === 0) return []
-    q = (q as any).in('id', allowed.slice(0, 500))
+    const { data: partsResult } = await supabase.from('call_participants').select('call_id').eq('team_member_id', user.id)
+    const partIds = partsResult?.map((p: any) => p.call_id) ?? []
+    if (user.department_id && partIds.length > 0)
+      q = (q as any).or(`department_id.eq.${user.department_id},id.in.(${partIds.slice(0, 200).join(',')})`)
+    else if (user.department_id)
+      q = (q as any).eq('department_id', user.department_id)
+    else if (partIds.length > 0)
+      q = (q as any).in('id', partIds.slice(0, 300))
+    else return []
   }
   if (params.call_type) q = (q as any).eq('call_type', params.call_type)
 
@@ -171,46 +169,50 @@ You have access to tools to query live data. Use them to give accurate, specific
 Be concise, data-driven, and actionable. Format scores clearly (e.g. "8.1/10").
 When giving coaching advice, be specific and encouraging.`
 
-  // Agentic loop — handle tool use
-  const anthropicMessages: any[] = messages.map(m => ({ role: m.role, content: m.content }))
-  let response = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, tools: TOOLS, messages: anthropicMessages })
+  try {
+    // Agentic loop — handle tool use
+    const anthropicMessages: any[] = messages.map(m => ({ role: m.role, content: m.content }))
+    let response = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, tools: TOOLS, messages: anthropicMessages })
 
-  while (response.stop_reason === 'tool_use') {
-    const toolUseBlocks: any[] = response.content.filter((b: any) => b.type === 'tool_use')
-    const toolResults: any[] = []
+    while (response.stop_reason === 'tool_use') {
+      const toolUseBlocks: any[] = response.content.filter((b: any) => b.type === 'tool_use')
+      const toolResults: any[] = []
 
-    for (const block of toolUseBlocks) {
-      const input = (block as any).input ?? {}
-      let result: any
+      for (const block of toolUseBlocks) {
+        const input = (block as any).input ?? {}
+        let result: any
 
-      try {
-        if (block.name === 'get_team_overview') {
-          result = await getTeamOverview(user)
-        } else if (block.name === 'get_member_stats') {
-          // If name given, look up ID first
-          let memberId = input.member_id
-          if (!memberId && input.member_name) {
-            const { data } = await supabase.from('team_members').select('id, name').ilike('name', `%${input.member_name}%`).limit(1).single()
-            memberId = data?.id
+        try {
+          if (block.name === 'get_team_overview') {
+            result = await getTeamOverview(user)
+          } else if (block.name === 'get_member_stats') {
+            let memberId = input.member_id
+            if (!memberId && input.member_name) {
+              const { data } = await supabase.from('team_members').select('id, name').ilike('name', `%${input.member_name}%`).limit(1).single()
+              memberId = data?.id
+            }
+            result = memberId ? await getMemberStats(memberId, user) : { error: 'Member not found' }
+          } else if (block.name === 'search_calls') {
+            result = await searchCalls(input, user)
+          } else if (block.name === 'get_coaching_insights') {
+            result = await getCoachingInsights(input.member_id, user)
           }
-          result = memberId ? await getMemberStats(memberId, user) : { error: 'Member not found' }
-        } else if (block.name === 'search_calls') {
-          result = await searchCalls(input, user)
-        } else if (block.name === 'get_coaching_insights') {
-          result = await getCoachingInsights(input.member_id, user)
+        } catch (e: any) {
+          result = { error: e.message }
         }
-      } catch (e: any) {
-        result = { error: e.message }
+
+        toolResults.push({ type: 'tool_result', tool_use_id: (block as any).id, content: JSON.stringify(result) })
       }
 
-      toolResults.push({ type: 'tool_result', tool_use_id: (block as any).id, content: JSON.stringify(result) })
+      anthropicMessages.push({ role: 'assistant', content: response.content })
+      anthropicMessages.push({ role: 'user', content: toolResults })
+      response = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, tools: TOOLS, messages: anthropicMessages })
     }
 
-    anthropicMessages.push({ role: 'assistant', content: response.content })
-    anthropicMessages.push({ role: 'user', content: toolResults })
-    response = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, tools: TOOLS, messages: anthropicMessages })
+    const text = response.content.find((b: any) => b.type === 'text')
+    return NextResponse.json({ reply: (text as any)?.text ?? 'No response generated.' })
+  } catch (err: any) {
+    console.error('[chat] error:', err?.status, err?.message ?? err)
+    return NextResponse.json({ error: err?.message ?? 'Sorry, something went wrong. Please try again.' }, { status: 500 })
   }
-
-  const text = response.content.find((b: any) => b.type === 'text')
-  return NextResponse.json({ reply: (text as any)?.text ?? 'No response generated.' })
 }
