@@ -27,16 +27,21 @@ export async function POST(req: NextRequest) {
 
   const normalised = (email as string).toLowerCase().trim()
 
-  // Try Supabase Auth first (users registered in Supabase)
-  const { error: authError } = await supabaseAnon.auth.signInWithPassword({ email: normalised, password })
+  // Check PORTAL_CREDENTIALS first — these users are not in Supabase Auth
+  let credentialsOk = false
+  let envCreds: Record<string, string> = {}
+  try { envCreds = JSON.parse(process.env.PORTAL_CREDENTIALS ?? '{}') } catch { /* */ }
 
-  if (authError) {
-    // Fallback: environment variable credentials (set PORTAL_CREDENTIALS in Vercel/env)
-    let envCreds: Record<string, string> = {}
-    try { envCreds = JSON.parse(process.env.PORTAL_CREDENTIALS ?? '{}') } catch { /* */ }
-    if (!envCreds[normalised] || password !== envCreds[normalised]) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
-    }
+  if (envCreds[normalised] && password === envCreds[normalised]) {
+    credentialsOk = true
+  } else {
+    // Fallback: Supabase Auth (for users registered directly in Supabase)
+    const { error: authError } = await supabaseAnon.auth.signInWithPassword({ email: normalised, password })
+    if (!authError) credentialsOk = true
+  }
+
+  if (!credentialsOk) {
+    return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   }
 
   const { data: member, error } = await supabase
@@ -45,7 +50,10 @@ export async function POST(req: NextRequest) {
     .ilike('email', normalised)
     .maybeSingle()
 
-  if (error || !member) return NextResponse.json({ error: 'No team member found for this email' }, { status: 403 })
+  if (error || !member) {
+    console.error('[login] team_members lookup failed — email:', normalised, 'supabase error:', error?.message ?? 'null row')
+    return NextResponse.json({ error: 'No team member found for this email', debug_email: normalised }, { status: 403 })
+  }
 
   const now   = Math.floor(Date.now() / 1000)
   const token = signToken({ sub: member.id, email: member.email, role: member.role, department_id: member.department_id ?? null, iat: now, exp: now + TOKEN_TTL })
