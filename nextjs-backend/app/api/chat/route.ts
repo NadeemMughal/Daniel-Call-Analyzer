@@ -65,7 +65,19 @@ async function searchCalls(params: { rep_name?: string; score_min?: number; scor
   let q = supabase.from('calls').select('id, call_type, recorded_at, status, clients(name), scorecards(overall_score, summary), call_participants(team_member_id, is_external, team_members(name))')
     .gte('recorded_at', since).order('recorded_at', { ascending: false }).limit(params.limit ?? 10)
 
-  if (user.role === 'manager' && user.department_id) q = (q as any).eq('department_id', user.department_id)
+  if (user.role === 'manager') {
+    const [partsResult, deptResult] = await Promise.all([
+      supabase.from('call_participants').select('call_id').eq('team_member_id', user.id),
+      user.department_id
+        ? supabase.from('calls').select('id').eq('department_id', user.department_id)
+        : Promise.resolve({ data: [] as { id: string }[] | null }),
+    ])
+    const partIds = partsResult.data?.map((p: any) => p.call_id) ?? []
+    const deptIds = deptResult.data?.map((c: any) => c.id) ?? []
+    const allowed = [...new Set([...partIds, ...deptIds])]
+    if (allowed.length === 0) return []
+    q = (q as any).in('id', allowed.slice(0, 500))
+  }
   if (params.call_type) q = (q as any).eq('call_type', params.call_type)
 
   const { data } = await q
