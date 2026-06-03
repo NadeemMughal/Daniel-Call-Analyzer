@@ -249,6 +249,10 @@
         "headerParameters": {
           "parameters": [
             {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
               "name": "anthropic-version",
               "value": "2023-06-01"
             },
@@ -259,20 +263,10 @@
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={{ JSON.stringify($json.anthropic_request_body) }}"
-        },
         "options": {},
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "anthropic-header-auth",
-          "name": "Anthropic Header Auth"
-        }
+        "genericAuthType": "httpHeaderAuth",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_request_body) }}"
       }
     },
     {
@@ -332,12 +326,9 @@
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "mode": "raw",
-          "rawBody": "={{ JSON.stringify({ member_id: $json.member_id, period_start: $json.period_start, period_end: $json.period_end, calls_analyzed: $json.calls_analyzed, average_score: $json.average_score, score_trend: $json.score_trend, analysis_json: $json.analysis_json }) }}"
-        },
-        "options": {}
+        "options": {},
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ member_id: $json.member_id, period_start: $json.period_start, period_end: $json.period_end, calls_analyzed: $json.calls_analyzed, average_score: $json.average_score, score_trend: $json.score_trend, analysis_json: $json.analysis_json }) }}"
       }
     },
     {
