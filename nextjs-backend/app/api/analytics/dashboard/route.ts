@@ -20,27 +20,37 @@ export async function GET(req: NextRequest) {
       repCallIds = [...new Set((myParts ?? []).map((p: any) => p.call_id))]
     }
 
-    let managerCallIds: string[] | null = null
+    // For managers: fetch cross-dept participation IDs (small list).
+    // Dept filter is applied server-side via eq/or to avoid URL length issues.
+    let managerPartIds: string[] = []
+    let managerDeptCallIds: string[] | null = null  // only used for scorecards (no dept column)
     if (role === 'manager') {
-      const [partsResult, deptResult] = await Promise.all([
-        supabase.from('call_participants').select('call_id').eq('team_member_id', userId),
-        department_id
-          ? supabase.from('calls').select('id').eq('department_id', department_id)
-          : Promise.resolve({ data: [] as { id: string }[] | null }),
-      ])
-      const partIds = partsResult.data?.map((p: any) => p.call_id) ?? []
-      const deptIds = deptResult.data?.map((c: any) => c.id) ?? []
-      managerCallIds = [...new Set([...partIds, ...deptIds])]
+      const { data: partsResult } = await supabase.from('call_participants').select('call_id').eq('team_member_id', userId)
+      managerPartIds = partsResult?.map((p: any) => p.call_id) ?? []
+      // For scorecard queries (no department_id column), fetch a capped set of recent dept call IDs
+      if (department_id) {
+        const { data: deptResult } = await supabase.from('calls').select('id').eq('department_id', department_id).order('recorded_at', { ascending: false }).limit(300)
+        const deptIds = deptResult?.map((c: any) => c.id) ?? []
+        managerDeptCallIds = [...new Set([...managerPartIds, ...deptIds])]
+      } else {
+        managerDeptCallIds = managerPartIds
+      }
     }
 
     function scope(q: any) {
-      if (role === 'manager') return managerCallIds?.length ? q.in('id', managerCallIds.slice(0, 500)) : q.in('id', ['00000000-0000-0000-0000-000000000000'])
+      if (role === 'manager') {
+        if (department_id && managerPartIds.length > 0)
+          return q.or(`department_id.eq.${department_id},id.in.(${managerPartIds.slice(0, 150).join(',')})`)
+        if (department_id) return q.eq('department_id', department_id)
+        if (managerPartIds.length > 0) return q.in('id', managerPartIds.slice(0, 300))
+        return q.in('id', ['00000000-0000-0000-0000-000000000000'])
+      }
       if (role === 'rep' && repCallIds) return q.in('id', repCallIds.slice(0, 500))
       return q
     }
     function scopedScores() {
       const base = supabase.from('scorecards').select('overall_score').not('overall_score', 'is', null)
-      if (role === 'manager') return managerCallIds?.length ? (base as any).in('call_id', managerCallIds.slice(0, 500)) : (base as any).in('call_id', ['00000000-0000-0000-0000-000000000000'])
+      if (role === 'manager') return managerDeptCallIds?.length ? (base as any).in('call_id', managerDeptCallIds.slice(0, 300)) : (base as any).in('call_id', ['00000000-0000-0000-0000-000000000000'])
       if (role === 'rep' && repCallIds) return (base as any).in('call_id', repCallIds.slice(0, 500))
       return base
     }
