@@ -270,7 +270,7 @@ export default function CallDetailPage() {
           {/* Projects full-width */}
           {projects.length > 0 && (
             <div className="md:col-span-2">
-              <ListCard title="Projects Discussed" icon={Box} accent="text-cyan-400" border="border-cyan-500/30" items={projects} bullet="▣" />
+              <ProjectsCard items={projects} />
             </div>
           )}
           <ListCard title="Key Points" icon={ListChecks} accent="text-white" border="border-[hsl(222,32%,18%)]" items={keyPoints} bullet="●" />
@@ -559,6 +559,77 @@ function CoachingPrioritiesCard({ priorities }: { priorities: Array<{ priority: 
                   <p className="text-xs text-gray-500 leading-relaxed">{p.impact}</p>
                 </div>
               )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function parseProjectStr(raw: string): Record<string, any> | null {
+  if (!raw || !raw.trim().startsWith('{')) return null
+  try { return JSON.parse(raw) } catch {}
+  try {
+    return JSON.parse(
+      raw
+        .replace(/'/g, '"')
+        .replace(/\bNone\b/g, 'null')
+        .replace(/\bTrue\b/g, 'true')
+        .replace(/\bFalse\b/g, 'false')
+    )
+  } catch {}
+  return null
+}
+
+function ProjectsCard({ items }: { items: string[] }) {
+  return (
+    <div className="card border-t-2 border-cyan-500/30 p-5">
+      <h2 className="flex items-center gap-2 text-cyan-400 font-semibold text-xs uppercase tracking-wider mb-4">
+        <Box className="w-4 h-4" /> Projects Discussed
+        <span className="text-gray-600 ml-auto font-mono text-xs">{items.length}</span>
+      </h2>
+      <div className="space-y-3">
+        {items.map((item, i) => {
+          const parsed = parseProjectStr(item)
+          if (parsed?.name) {
+            const statusLower = (parsed.status ?? '').toLowerCase()
+            const statusColor = statusLower.includes('risk') || statusLower.includes('danger')
+              ? 'text-red-400 bg-red-500/10 border-red-500/30'
+              : statusLower.includes('track') || statusLower.includes('good') || statusLower.includes('complete')
+              ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+              : 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+            return (
+              <div key={i} className="border border-[hsl(222,32%,18%)] rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <span className="font-semibold text-white text-sm">{parsed.name}</span>
+                  {parsed.status && (
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${statusColor}`}>
+                      {parsed.status}
+                    </span>
+                  )}
+                </div>
+                {parsed.deadline && <p className="text-xs text-amber-400 mb-2">⏰ Deadline: {parsed.deadline}</p>}
+                {parsed.business_impact && <p className="text-xs text-gray-400 mb-2">💼 {parsed.business_impact}</p>}
+                {Array.isArray(parsed.key_issues) && parsed.key_issues.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Key Issues</p>
+                    <ul className="space-y-1">
+                      {(parsed.key_issues as string[]).map((issue, j) => (
+                        <li key={j} className="text-xs text-gray-400 flex items-start gap-1.5">
+                          <span className="text-red-400 shrink-0 mt-0.5">•</span>{issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )
+          }
+          return (
+            <div key={i} className="flex items-start gap-2.5 text-[13px] text-gray-300 leading-relaxed">
+              <span className="text-cyan-400 mt-0.5 font-bold shrink-0">▣</span>
+              <span>{item}</span>
             </div>
           )
         })}
