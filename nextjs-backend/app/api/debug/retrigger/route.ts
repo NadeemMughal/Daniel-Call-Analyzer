@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'N8N_BASE_URL not set' }, { status: 500 })
   }
 
+  // batch param limits how many to trigger per call (default 5 to respect Groq rate limits)
+  const batch = Math.min(parseInt(new URL(req.url).searchParams.get('batch') ?? '5'), 20)
+
   // Find calls that are pending/failed and have a transcript
   const { data: calls, error } = await supabase
     .from('calls')
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const eligible = (calls ?? []).filter((c: any) => (c.transcript_raw || '').trim().length >= 50)
+  const eligible = (calls ?? []).filter((c: any) => (c.transcript_raw || '').trim().length >= 50).slice(0, batch)
 
   const results: { id: string; triggered: boolean; error?: string }[] = []
 
@@ -39,6 +42,8 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ call_id: call.id }),
       })
       results.push({ id: call.id, triggered: r.ok, error: r.ok ? undefined : `HTTP ${r.status}` })
+      // Small delay between triggers to avoid hitting Groq rate limits on concurrent executions
+      await new Promise(resolve => setTimeout(resolve, 2000))
     } catch (e: any) {
       results.push({ id: call.id, triggered: false, error: e.message })
     }
