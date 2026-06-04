@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser, unauthorized } from '@/lib/auth'
-import { anthropic } from '@/lib/anthropic'
 import { supabase } from '@/lib/supabase'
 
 export async function OPTIONS() { return new Response(null, { status: 204 }) }
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY!
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+
+async function callGroq(messages: any[], tools: any[]) {
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: GROQ_MODEL, max_tokens: 1024, messages, tools, tool_choice: 'auto' }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Groq ${res.status}: ${err}`)
+  }
+  return res.json()
+}
 
 // ── Tool implementations ──────────────────────────────────────────────────────
 
@@ -19,7 +35,6 @@ async function getTeamOverview(user: { id: string; role: string; department_id?:
 
   const members = (membersRes.data ?? []) as any[]
   const scorecards = (scoresRes.data ?? []) as any[]
-
   const memberStats: Record<string, { name: string; scores: number[]; calls: number }> = {}
   for (const m of members) memberStats[m.id] = { name: m.name, scores: [], calls: 0 }
 
@@ -121,28 +136,40 @@ async function getCoachingInsights(memberId: string, user: { id: string; role: s
   }
 }
 
-// ── Tool definitions for Claude ───────────────────────────────────────────────
+// ── Tool definitions (OpenAI/Groq format) ─────────────────────────────────────
 
-const TOOLS: any[] = [
+const TOOLS = [
   {
-    name: 'get_team_overview',
-    description: 'Get team performance overview — avg scores and call counts for all members the user can see.',
-    input_schema: { type: 'object', properties: {}, required: [] },
+    type: 'function',
+    function: {
+      name: 'get_team_overview',
+      description: 'Get team performance overview — avg scores and call counts for all members the user can see.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
   },
   {
-    name: 'get_member_stats',
-    description: 'Get detailed stats for a specific team member: avg score, recent calls, coaching insights, trend.',
-    input_schema: { type: 'object', properties: { member_id: { type: 'string', description: 'UUID of the team member' }, member_name: { type: 'string', description: 'Name to search for if ID unknown' } }, required: [] },
+    type: 'function',
+    function: {
+      name: 'get_member_stats',
+      description: 'Get detailed stats for a specific team member: avg score, recent calls, trend.',
+      parameters: { type: 'object', properties: { member_id: { type: 'string', description: 'UUID of the team member' }, member_name: { type: 'string', description: 'Name to search for if ID unknown' } }, required: [] },
+    },
   },
   {
-    name: 'search_calls',
-    description: 'Search and filter calls. Can filter by rep name, score range, call type, or days back.',
-    input_schema: { type: 'object', properties: { rep_name: { type: 'string' }, score_min: { type: 'number' }, score_max: { type: 'number' }, call_type: { type: 'string', enum: ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'] }, days_back: { type: 'number', default: 30 }, limit: { type: 'number', default: 10 } }, required: [] },
+    type: 'function',
+    function: {
+      name: 'search_calls',
+      description: 'Search and filter calls by rep name, score range, call type, or date range.',
+      parameters: { type: 'object', properties: { rep_name: { type: 'string' }, score_min: { type: 'number' }, score_max: { type: 'number' }, call_type: { type: 'string', enum: ['discovery', 'ads_intro', 'launch', 'follow_up', 'team', 'other'] }, days_back: { type: 'number' }, limit: { type: 'number' } }, required: [] },
+    },
   },
   {
-    name: 'get_coaching_insights',
-    description: 'Get coaching insights for a team member: their consistent strengths and areas needing improvement.',
-    input_schema: { type: 'object', properties: { member_id: { type: 'string' } }, required: ['member_id'] },
+    type: 'function',
+    function: {
+      name: 'get_coaching_insights',
+      description: 'Get coaching insights for a team member: consistent strengths and areas needing improvement.',
+      parameters: { type: 'object', properties: { member_id: { type: 'string' } }, required: ['member_id'] },
+    },
   },
 ]
 
@@ -170,49 +197,52 @@ Be concise, data-driven, and actionable. Format scores clearly (e.g. "8.1/10").
 When giving coaching advice, be specific and encouraging.`
 
   try {
-    // Agentic loop — handle tool use
-    const anthropicMessages: any[] = messages.map(m => ({ role: m.role, content: m.content }))
-    let response = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, tools: TOOLS, messages: anthropicMessages })
+    const groqMessages: any[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role, content: m.content })),
+    ]
 
-    while (response.stop_reason === 'tool_use') {
-      const toolUseBlocks: any[] = response.content.filter((b: any) => b.type === 'tool_use')
+    let response = await callGroq(groqMessages, TOOLS)
+    let choice = response.choices?.[0]
+
+    while (choice?.finish_reason === 'tool_calls') {
+      const toolCalls = choice.message?.tool_calls ?? []
       const toolResults: any[] = []
 
-      for (const block of toolUseBlocks) {
-        const input = (block as any).input ?? {}
+      for (const tc of toolCalls) {
         let result: any
-
         try {
-          if (block.name === 'get_team_overview') {
+          const input = JSON.parse(tc.function.arguments ?? '{}')
+          if (tc.function.name === 'get_team_overview') {
             result = await getTeamOverview(user)
-          } else if (block.name === 'get_member_stats') {
+          } else if (tc.function.name === 'get_member_stats') {
             let memberId = input.member_id
             if (!memberId && input.member_name) {
               const { data } = await supabase.from('team_members').select('id, name').ilike('name', `%${input.member_name}%`).limit(1).single()
               memberId = data?.id
             }
             result = memberId ? await getMemberStats(memberId, user) : { error: 'Member not found' }
-          } else if (block.name === 'search_calls') {
+          } else if (tc.function.name === 'search_calls') {
             result = await searchCalls(input, user)
-          } else if (block.name === 'get_coaching_insights') {
+          } else if (tc.function.name === 'get_coaching_insights') {
             result = await getCoachingInsights(input.member_id, user)
           }
         } catch (e: any) {
           result = { error: e.message }
         }
-
-        toolResults.push({ type: 'tool_result', tool_use_id: (block as any).id, content: JSON.stringify(result) })
+        toolResults.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) })
       }
 
-      anthropicMessages.push({ role: 'assistant', content: response.content })
-      anthropicMessages.push({ role: 'user', content: toolResults })
-      response = await anthropic.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, tools: TOOLS, messages: anthropicMessages })
+      groqMessages.push(choice.message)
+      groqMessages.push(...toolResults)
+      response = await callGroq(groqMessages, TOOLS)
+      choice = response.choices?.[0]
     }
 
-    const text = response.content.find((b: any) => b.type === 'text')
-    return NextResponse.json({ reply: (text as any)?.text ?? 'No response generated.' })
+    const reply = choice?.message?.content ?? 'No response generated.'
+    return NextResponse.json({ reply })
   } catch (err: any) {
-    console.error('[chat] error:', err?.status, err?.message ?? err)
+    console.error('[chat] error:', err?.message ?? err)
     return NextResponse.json({ error: err?.message ?? 'Sorry, something went wrong. Please try again.' }, { status: 500 })
   }
 }

@@ -220,7 +220,7 @@
             ],
             "parameters": {
                 "mode": "runOnceForAllItems",
-                "jsCode": "const responseText = ($input.first().json.text || $input.first().json.content?.[0]?.text || '').trim();\nconst callId = $('Webhook').first().json.body.call_id;\nconst rawRubricPS = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubricPS) ? (rawRubricPS[0] || null) : (rawRubricPS || null);\n\nlet cleanText = responseText.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\n// Fallback: if model returned markdown prose, extract the embedded JSON object\nif (!cleanText.startsWith('{')) {\n  const start = cleanText.indexOf('{');\n  const end = cleanText.lastIndexOf('}');\n  if (start !== -1 && end > start) cleanText = cleanText.substring(start, end + 1);\n}\n\nlet sc;\ntry {\n  sc = JSON.parse(cleanText);\n} catch (e) {\n  throw new Error('Failed to parse LLM scorecard: ' + responseText.substring(0, 300));\n}\n\nif (typeof sc.overall_score !== 'number') sc.overall_score = 0;\nif (!Array.isArray(sc.strengths)) sc.strengths = [];\nif (!Array.isArray(sc.improvements)) sc.improvements = [];\nif (!sc.summary) sc.summary = '';\n\nconst allEvidence = [];\n\nfor (const s of sc.strengths) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\nfor (const s of sc.improvements) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\n\nif (sc.meeting_phase) allEvidence.push({ criterion_key: 'meeting_phase', quote: String(sc.meeting_phase).trim(), timestamp_seconds: null });\n\nfor (const a of (sc.attendees || [])) allEvidence.push({ criterion_key: 'attendee', quote: String(a), timestamp_seconds: null });\n\nif (sc.talk_time_breakdown && sc.talk_time_breakdown.length > 0) {\n  allEvidence.push({ criterion_key: 'talk_time_breakdown', quote: JSON.stringify(sc.talk_time_breakdown), timestamp_seconds: null });\n}\n\nconst LISTS = [\n  ['key_points','key_point'],['decisions','decision'],['action_items','action_item'],\n  ['next_steps','next_step'],['open_questions','open_question'],['risks','risk'],\n  ['suggestions','suggestion'],['projects','project'],['banned_phrases','banned_phrase']\n];\nfor (const [field, key] of LISTS) {\n  for (const item of (sc[field] || [])) allEvidence.push({ criterion_key: key, quote: String(item), timestamp_seconds: null });\n}\n\nfor (const p of (sc.coaching_priorities || [])) {\n  if (p.priority >= 1 && p.priority <= 3) allEvidence.push({ criterion_key: 'coaching_priority_' + p.priority, quote: JSON.stringify(p), timestamp_seconds: null });\n}\n\nif (sc.meeting_effectiveness) allEvidence.push({ criterion_key: 'meeting_effectiveness', quote: JSON.stringify(sc.meeting_effectiveness), timestamp_seconds: null });\n\n// Store new agent fields as evidence\nif (sc.manager_summary) allEvidence.push({ criterion_key: 'manager_summary', quote: String(sc.manager_summary), timestamp_seconds: null });\nif (sc.positive_reinforcement) allEvidence.push({ criterion_key: 'positive_reinforcement', quote: String(sc.positive_reinforcement), timestamp_seconds: null });\nif (sc.rep_trajectory) allEvidence.push({ criterion_key: 'rep_trajectory', quote: String(sc.rep_trajectory), timestamp_seconds: null });\nif (sc.comparison_note) allEvidence.push({ criterion_key: 'comparison_note', quote: String(sc.comparison_note), timestamp_seconds: null });\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric ? rubric.id : null,\n  overall_score: Math.round(sc.overall_score * 10) / 10,\n  summary: sc.summary,\n  strengths: sc.strengths,\n  improvements: sc.improvements,\n  llm_model: 'claude-sonnet-4-6',\n  all_evidence: allEvidence\n} }];"
+                "jsCode": "const responseText = ($input.first().json.text || $input.first().json.content?.[0]?.text || '').trim();\nconst callId = $('Webhook').first().json.body.call_id;\nconst rawRubricPS = $('Get Active Rubric').first().json;\nconst rubric = Array.isArray(rawRubricPS) ? (rawRubricPS[0] || null) : (rawRubricPS || null);\n\nlet cleanText = responseText.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n\n// Fallback: if model returned markdown prose, extract the embedded JSON object\nif (!cleanText.startsWith('{')) {\n  const start = cleanText.indexOf('{');\n  const end = cleanText.lastIndexOf('}');\n  if (start !== -1 && end > start) cleanText = cleanText.substring(start, end + 1);\n}\n\nlet sc;\ntry {\n  sc = JSON.parse(cleanText);\n} catch (e) {\n  throw new Error('Failed to parse LLM scorecard: ' + responseText.substring(0, 300));\n}\n\nif (typeof sc.overall_score !== 'number') sc.overall_score = 0;\nif (!Array.isArray(sc.strengths)) sc.strengths = [];\nif (!Array.isArray(sc.improvements)) sc.improvements = [];\nif (!sc.summary) sc.summary = '';\n\nconst allEvidence = [];\n\nfor (const s of sc.strengths) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\nfor (const s of sc.improvements) {\n  if (s.evidence_quote) allEvidence.push({ criterion_key: s.criterion, quote: s.evidence_quote, timestamp_seconds: s.timestamp_seconds || null });\n}\n\nif (sc.meeting_phase) allEvidence.push({ criterion_key: 'meeting_phase', quote: String(sc.meeting_phase).trim(), timestamp_seconds: null });\n\nfor (const a of (sc.attendees || [])) allEvidence.push({ criterion_key: 'attendee', quote: String(a), timestamp_seconds: null });\n\nif (sc.talk_time_breakdown && sc.talk_time_breakdown.length > 0) {\n  allEvidence.push({ criterion_key: 'talk_time_breakdown', quote: JSON.stringify(sc.talk_time_breakdown), timestamp_seconds: null });\n}\n\nconst LISTS = [\n  ['key_points','key_point'],['decisions','decision'],['action_items','action_item'],\n  ['next_steps','next_step'],['open_questions','open_question'],['risks','risk'],\n  ['suggestions','suggestion'],['projects','project'],['banned_phrases','banned_phrase']\n];\nfor (const [field, key] of LISTS) {\n  for (const item of (sc[field] || [])) allEvidence.push({ criterion_key: key, quote: String(item), timestamp_seconds: null });\n}\n\nfor (const p of (sc.coaching_priorities || [])) {\n  if (p.priority >= 1 && p.priority <= 3) allEvidence.push({ criterion_key: 'coaching_priority_' + p.priority, quote: JSON.stringify(p), timestamp_seconds: null });\n}\n\nif (sc.meeting_effectiveness) allEvidence.push({ criterion_key: 'meeting_effectiveness', quote: JSON.stringify(sc.meeting_effectiveness), timestamp_seconds: null });\n\n// Store new agent fields as evidence\nif (sc.manager_summary) allEvidence.push({ criterion_key: 'manager_summary', quote: String(sc.manager_summary), timestamp_seconds: null });\nif (sc.positive_reinforcement) allEvidence.push({ criterion_key: 'positive_reinforcement', quote: String(sc.positive_reinforcement), timestamp_seconds: null });\nif (sc.rep_trajectory) allEvidence.push({ criterion_key: 'rep_trajectory', quote: String(sc.rep_trajectory), timestamp_seconds: null });\nif (sc.comparison_note) allEvidence.push({ criterion_key: 'comparison_note', quote: String(sc.comparison_note), timestamp_seconds: null });\n\nreturn [{ json: {\n  call_id: callId,\n  rubric_id: rubric ? rubric.id : null,\n  overall_score: Math.round(sc.overall_score * 10) / 10,\n  summary: sc.summary,\n  strengths: sc.strengths,\n  improvements: sc.improvements,\n  llm_model: 'llama-3.3-70b-versatile',\n  all_evidence: allEvidence\n} }];"
             }
         },
         {
@@ -458,23 +458,15 @@
                 1760,
                 180
             ],
-            "credentials": {
-                "httpHeaderAuth": {
-                    "id": "anthropic-header-auth",
-                    "name": "Anthropic Header Auth"
-                }
-            },
             "parameters": {
                 "method": "POST",
-                "url": "https://api.anthropic.com/v1/messages",
-                "authentication": "genericCredentialType",
-                "genericAuthType": "httpHeaderAuth",
+                "url": "https://api.groq.com/openai/v1/chat/completions",
                 "sendHeaders": true,
                 "headerParameters": {
                     "parameters": [
                         {
-                            "name": "anthropic-version",
-                            "value": "2023-06-01"
+                            "name": "Authorization",
+                            "value": "Bearer {{ $env.GROQ_API_KEY }}"
                         },
                         {
                             "name": "content-type",
@@ -484,7 +476,7 @@
                 },
                 "sendBody": true,
                 "specifyBody": "json",
-                "jsonBody": "={{ { model: 'claude-sonnet-4-6', max_tokens: 4000, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.turn2UserMsg }] } }}",
+                "jsonBody": "={{ { model: 'llama-3.3-70b-versatile', max_tokens: 4000, messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.turn2UserMsg }] } }}",
                 "options": {}
             }
         },
@@ -497,23 +489,15 @@
                 1980,
                 180
             ],
-            "credentials": {
-                "httpHeaderAuth": {
-                    "id": "anthropic-header-auth",
-                    "name": "Anthropic Header Auth"
-                }
-            },
             "parameters": {
                 "method": "POST",
-                "url": "https://api.anthropic.com/v1/messages",
-                "authentication": "genericCredentialType",
-                "genericAuthType": "httpHeaderAuth",
+                "url": "https://api.groq.com/openai/v1/chat/completions",
                 "sendHeaders": true,
                 "headerParameters": {
                     "parameters": [
                         {
-                            "name": "anthropic-version",
-                            "value": "2023-06-01"
+                            "name": "Authorization",
+                            "value": "Bearer {{ $env.GROQ_API_KEY }}"
                         },
                         {
                             "name": "content-type",
@@ -523,7 +507,7 @@
                 },
                 "sendBody": true,
                 "specifyBody": "json",
-                "jsonBody": "={{ { model: 'claude-sonnet-4-6', max_tokens: 500, system: 'You are a sales coaching assistant. Return only raw JSON.', messages: [  { role: 'user', content: $('Build Enriched Request').first().json.turn2UserMsg },  { role: 'assistant', content: ($('Turn 2: Score Call').first().json.content || [{}])[0].text || '' },  { role: 'user', content: 'Synthesis as raw JSON only: {\"manager_summary\":\"2-sentence manager summary\",\"positive_reinforcement\":\"one specific strength\"}' }] } }}",
+                "jsonBody": "={{ { model: 'llama-3.3-70b-versatile', max_tokens: 500, messages: [ { role: 'system', content: 'You are a sales coaching assistant. Return only raw JSON.' }, { role: 'user', content: $('Build Enriched Request').first().json.turn2UserMsg }, { role: 'assistant', content: $('Turn 2: Score Call').first().json.choices[0].message.content || '' }, { role: 'user', content: 'Synthesis as raw JSON only: {\"manager_summary\":\"2-sentence manager summary\",\"positive_reinforcement\":\"one specific strength\"}' }] } }}",
                 "options": {}
             }
         },
@@ -538,7 +522,7 @@
             ],
             "parameters": {
                 "mode": "runOnceForAllItems",
-                "jsCode": "const t2 = ($('Turn 2: Score Call').first().json.content || [{}])[0].text || '';\nconst t3 = ($('Turn 3: Synthesis').first().json.content || [{}])[0].text || '';\n\nlet sc = {};\nlet cleanT2 = t2.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\ntry { sc = JSON.parse(cleanT2); } catch(e) {}\n\ntry {\n  const c3 = JSON.parse(t3.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim());\n  if (c3.manager_summary) sc.manager_summary = c3.manager_summary;\n  if (c3.positive_reinforcement) sc.positive_reinforcement = c3.positive_reinforcement;\n} catch(e) {}\n\nreturn [{ json: { text: JSON.stringify(sc) } }];"
+                "jsCode": "const t2 = $('Turn 2: Score Call').first().json.choices?.[0]?.message?.content || '';\nconst t3 = $('Turn 3: Synthesis').first().json.choices?.[0]?.message?.content || '';\n\nlet sc = {};\nlet cleanT2 = t2.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\ntry { sc = JSON.parse(cleanT2); } catch(e) {}\n\ntry {\n  const c3 = JSON.parse(t3.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim());\n  if (c3.manager_summary) sc.manager_summary = c3.manager_summary;\n  if (c3.positive_reinforcement) sc.positive_reinforcement = c3.positive_reinforcement;\n} catch(e) {}\n\nreturn [{ json: { text: JSON.stringify(sc) } }];"
             }
         }
     ],
